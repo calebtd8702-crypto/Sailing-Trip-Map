@@ -148,6 +148,7 @@ function render(){
   if (cum && dep && !isNaN(dep)) etaTxt = new Date(dep.getTime()+cum/speed*3600e3).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   document.getElementById('t-eta').textContent = etaTxt;
   persist();
+  if (typeof scheduleRouteWx === 'function') scheduleRouteWx();
 }
 
 map.on('click', e => {
