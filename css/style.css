@@ -153,6 +153,7 @@ html,body{height:100%;font-family:var(--sans);background:#0a1826;color:var(--ink
   transition:transform .15s;
 }
 .poimark:hover{transform:scale(1.2)}
+.poimark.wreck{border-style:dashed;background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.3), rgba(255,255,255,.04) 48%), rgba(24,34,48,.72)}
 .poimark .ti{filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
 
 /* ============ popups & leaflet chrome ============ */

@@ -5,6 +5,10 @@ const CATS = {
   marina:    {label:'Marinas',     icon:'ti-anchor',           color:'#ecc06a', on:true},
   anchorage: {label:'Anchorages',  icon:'ti-lifebuoy',         color:'#54e0c0', on:true},
   fuel:      {label:'Fuel',        icon:'ti-gas-station',      color:'#ef9f27', on:true},
+  dive:      {label:'Dive',        icon:'ti-scuba-mask',       color:'#5fe3e9', on:true},
+  wreck:     {label:'Wrecks',      icon:'ti-skull',            color:'#cbd5e1', on:true},
+  surf:      {label:'Surf',        icon:'ti-ripple',           color:'#a3e635', on:true},
+  fish:      {label:'Fishing',     icon:'ti-fish-hook',        color:'#f472b6', on:true},
   eat:       {label:'Eat & drink', icon:'ti-tools-kitchen-2',  color:'#ff9d78', on:true},
   stay:      {label:'Stay',        icon:'ti-bed',              color:'#afa9ec', on:true},
   see:       {label:'See & do',    icon:'ti-camera',           color:'#85b7eb', on:true}
@@ -47,6 +51,10 @@ Object.entries(CATS).forEach(([k,c])=>{
 });
 
 function classify(t){
+  if (t['seamark:type']==='wreck' || t.historic==='wreck') return 'wreck';
+  if (t.amenity==='dive_centre' || t.shop==='scuba_diving' || t.sport==='scuba_diving') return 'dive';
+  if (t.sport==='surfing') return 'surf';
+  if (t.shop==='fishing' || t.natural==='reef') return 'fish';
   if (t.leisure==='marina' || t['seamark:type']==='harbour' || t.harbour) return 'marina';
   if (t['seamark:type']==='anchorage' || t.anchorage) return 'anchorage';
   if (t.waterway==='fuel' || (t.amenity==='fuel')) return 'fuel';
@@ -59,8 +67,14 @@ function poiSub(t, cat){
   const bits = [];
   if (cat==='eat' && t.cuisine) bits.push(t.cuisine.split(';')[0].replace(/_/g,' '));
   if (cat==='marina' && t['seamark:harbour:category']) bits.push(t['seamark:harbour:category'].replace(/_/g,' '));
+  if (cat==='wreck'){
+    if (t['seamark:wreck:category']) bits.push(t['seamark:wreck:category'].replace(/_/g,' '));
+    if (t.depth || t['seamark:wreck:depth']) bits.push((t.depth||t['seamark:wreck:depth'])+' m');
+  }
+  if (cat==='dive') bits.push(t.amenity==='dive_centre'||t.shop==='scuba_diving' ? 'dive shop' : 'dive site');
+  if (cat==='fish') bits.push(t.natural==='reef' ? 'reef' : 'tackle shop');
   if (t.tourism && cat==='see') bits.push(t.tourism);
-  if (t.historic) bits.push(t.historic.replace(/_/g,' '));
+  if (cat!=='wreck' && t.historic) bits.push(t.historic.replace(/_/g,' '));
   if (t.stars) bits.push('★'.repeat(Math.min(5,parseInt(t.stars)||0)));
   return bits.join(' · ');
 }
@@ -78,13 +92,18 @@ async function scanArea(){
   const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
   let q = `[out:json][timeout:25];(
     nwr["leisure"="marina"](${bbox});
-    nwr["seamark:type"~"harbour|anchorage"](${bbox});
+    nwr["seamark:type"~"harbour|anchorage|wreck"](${bbox});
+    nwr["historic"="wreck"](${bbox});
+    nwr["sport"~"scuba_diving|surfing"](${bbox});
+    nwr["natural"="reef"]["name"](${bbox});
     nwr["waterway"="fuel"](${bbox});`;
   if (z >= 13) q += `
     node["amenity"~"restaurant|cafe|bar|pub"](${bbox});
+    nwr["amenity"="dive_centre"](${bbox});
+    nwr["shop"~"scuba_diving|fishing"](${bbox});
     nwr["tourism"~"hotel|guest_house|attraction|museum|viewpoint"](${bbox});
     nwr["natural"="beach"]["name"](${bbox});`;
-  q += `);out center 400;`;
+  q += `);out center 500;`;
   try{
     const js = await overpassFetch(q);
     pois = [];
@@ -94,7 +113,8 @@ async function scanArea(){
       const cat = classify(t); if (!cat) return;
       const lat = el.lat ?? el.center?.lat, lng = el.lon ?? el.center?.lon;
       if (lat==null) return;
-      const name = t.name || (cat==='anchorage'?'Anchorage':cat==='fuel'?'Fuel dock':null);
+      const name = t.name || t['seamark:name'] ||
+        ({anchorage:'Anchorage', fuel:'Fuel dock', wreck:'Wreck', dive:'Dive site', surf:'Surf spot'})[cat] || null;
       if (!name) return;
       const dk = cat+'|'+name+'|'+lat.toFixed(3);
       if (seen.has(dk)) return; seen.add(dk);
@@ -127,7 +147,7 @@ function drawPois(){
     const c = CATS[k];
     items.forEach(p=>{
       const mk = L.marker([p.lat,p.lng], {icon:L.divIcon({className:'', html:
-        `<div class="poimark" style="width:25px;height:25px;--pc:${c.color}"><i class="ti ${c.icon}"></i></div>`, iconSize:[25,25], iconAnchor:[12,12]})});
+        `<div class="poimark${k==='wreck'?' wreck':''}" style="width:25px;height:25px;--pc:${c.color}"><i class="ti ${c.icon}"></i></div>`, iconSize:[25,25], iconAnchor:[12,12]})});
       const t = p.tags;
       let pop = `<b>${p.name}</b><br><span style="color:var(--muted);font-size:11px">${c.label}${poiSub(t,k)?' · '+poiSub(t,k):''}</span><br>
         <span style="font-size:11px;font-variant-numeric:tabular-nums">${fmtCoord(p.lat,p.lng)}</span>`;
