@@ -73,17 +73,16 @@ document.getElementById('sidetoggle').onclick = () => {
   document.getElementById('topbar').style.left = side.classList.contains('hidden') ? '14px' : '352px';
 };
 
-/* ================= course state ================= */
-let wps = [];            // {lat,lng,name}
+/* ================= course state (voyage.js owns persistence) ================= */
+let wps = [];            // {lat,lng,name} — bound to the active voyage by voyage.js
 let wpMarkers = [], legLabels = [], routeLine = null, plotting = true;
 
-try { wps = JSON.parse(localStorage.getItem('helm-route')||'[]'); } catch(e){}
 const speedEl = document.getElementById('speed');
 const departEl = document.getElementById('depart');
 speedEl.value = localStorage.getItem('helm-speed') || 6;
 
 function persist(){
-  localStorage.setItem('helm-route', JSON.stringify(wps));
+  if (typeof persistVoyages === 'function') persistVoyages();
   localStorage.setItem('helm-speed', speedEl.value);
 }
 
@@ -96,8 +95,9 @@ function render(){
   legLabels.forEach(m=>map.removeLayer(m)); legLabels=[];
   if (routeLine) { map.removeLayer(routeLine); routeLine=null; }
 
+  const vColor = (typeof activeVoyage === 'function' && activeVoyage()) ? activeVoyage().color : '#ecc06a';
   if (wps.length > 1){
-    routeLine = L.polyline(wps, {color:'#ecc06a', weight:3, opacity:.95, className:'routeline'}).addTo(map);
+    routeLine = L.polyline(wps, {color:vColor, weight:3, opacity:.95, className:'routeline'}).addTo(map);
   }
 
   const speed = parseFloat(speedEl.value)||6;
@@ -148,6 +148,7 @@ function render(){
   if (cum && dep && !isNaN(dep)) etaTxt = new Date(dep.getTime()+cum/speed*3600e3).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   document.getElementById('t-eta').textContent = etaTxt;
   persist();
+  if (typeof renderGhosts === 'function') renderGhosts();
   if (typeof scheduleRouteWx === 'function') scheduleRouteWx();
 }
 
@@ -178,11 +179,12 @@ window.addEventListener('keydown', e=>{
 
 document.getElementById('gpx').onclick = ()=>{
   if (!wps.length) return;
+  const vname = (typeof activeVoyage === 'function' && activeVoyage()) ? activeVoyage().name : 'Helm course';
   const pts = wps.map((p,i)=>`    <rtept lat="${p.lat.toFixed(6)}" lon="${p.lng.toFixed(6)}"><name>${(p.name||'WP'+(i+1)).replace(/[<>&]/g,'')}</name></rtept>`).join('\n');
-  const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Helm" xmlns="http://www.topografix.com/GPX/1/1">\n  <rte>\n    <name>Helm course</name>\n${pts}\n  </rte>\n</gpx>`;
+  const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Helm" xmlns="http://www.topografix.com/GPX/1/1">\n  <rte>\n    <name>${vname.replace(/[<>&]/g,'')}</name>\n${pts}\n  </rte>\n</gpx>`;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
-  a.download = 'helm-course.gpx';
+  a.download = vname.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.gpx';
   a.click();
 };
 
@@ -205,10 +207,8 @@ document.getElementById('search').addEventListener('keydown', async e=>{
   e.target.disabled = false; e.target.focus();
 });
 
-/* ================= boot ================= */
+/* ================= boot (render happens in voyage.js once state is bound) ================= */
 const bootDep = new Date(Date.now()+3600e3);
 bootDep.setMinutes(0,0,0);
 departEl.value = bootDep.toISOString().slice(0,16);
-render();
-if (wps.length>1) map.fitBounds(L.latLngBounds(wps).pad(0.3));
 setTimeout(()=>{ const h=document.getElementById('hint'); if(!h) return; h.style.transition='opacity 1s'; h.style.opacity='0'; setTimeout(()=>h.remove(),1000); }, 14000);

@@ -154,7 +154,9 @@ function drawPois(){
       if (t.phone||t['contact:phone']) pop += `<br><i class="ti ti-phone"></i> ${t.phone||t['contact:phone']}`;
       if (t.website||t['contact:website']) pop += `<br><a href="${t.website||t['contact:website']}" target="_blank"><i class="ti ti-external-link"></i> website</a>`;
       if (t['addr:street']) pop += `<br><span style="font-size:11px;color:var(--muted)">${[t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')}</span>`;
-      pop += `<br><a href="#" onclick="addAsWaypoint(${p.lat},${p.lng},'${p.name.replace(/'/g,"\\'")}');return false"><i class="ti ti-route"></i> add to course</a>`;
+      const safeName = p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      pop += `<br><a href="#" onclick="addAsWaypoint(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-route"></i> add to course</a>
+        &nbsp;·&nbsp; <a href="#" onclick="logSpot(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-star"></i> log it</a>`;
       mk.bindPopup(pop);
       mk.addTo(poiLayer);
       p._mk = mk;

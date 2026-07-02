@@ -97,6 +97,57 @@ html,body{height:100%;font-family:var(--sans);background:#0a1826;color:var(--ink
 #routebtns button:hover{color:var(--brass);text-shadow:0 0 8px rgba(236,192,106,.5)}
 #routebtns button+button{border-left:1px solid var(--edge)}
 
+/* ============ voyages ============ */
+#voyagerow{display:flex;align-items:center;gap:6px;padding:9px 14px;border-bottom:1px solid var(--edge);flex:none}
+#vdot{width:11px;height:11px;border-radius:50%;background:var(--brass);flex:none;box-shadow:0 0 8px currentColor;border:1px solid rgba(255,255,255,.5)}
+#voyagesel{flex:1;min-width:0;background:var(--glass-lite);border:1px solid var(--edge);border-radius:10px;color:var(--ink);padding:6px 8px;font-size:12.5px;outline:none;cursor:pointer}
+#voyagesel option{background:#12283e;color:var(--ink)}
+#voyagerow button{background:none;border:none;color:var(--faint);font-size:15px;cursor:pointer;padding:3px;transition:color .15s}
+#voyagerow button:hover{color:var(--brass)}
+
+/* ============ logbook ============ */
+#logpanel{flex:0 0 auto;max-height:32%}
+#loghead{cursor:pointer}
+#logadd{background:var(--glass-lite);border:1px solid var(--edge);border-radius:8px;color:var(--brass);font-size:13px;cursor:pointer;padding:2px 8px;transition:all .15s}
+#logadd:hover{border-color:var(--brass);box-shadow:0 0 10px rgba(236,192,106,.3)}
+#logchev{color:var(--faint)}
+#loglist{overflow-y:auto;min-height:0}
+#logempty{padding:16px 18px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.logentry{padding:9px 18px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;transition:background .15s}
+.logentry:hover{background:rgba(236,192,106,.07)}
+.logentry .row1{display:flex;align-items:center;gap:8px}
+.logentry .row1 .ti{color:var(--brass);font-size:14px}
+.logentry .lname{font-size:13px;font-weight:600;flex:1;color:var(--ink)}
+.logentry .lstars{color:var(--brass);font-size:11px;letter-spacing:1px}
+.logentry .lsub{font-size:11px;color:var(--faint);margin:3px 0 0 22px}
+.logmark{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:#0a1826;
+  background:radial-gradient(circle at 32% 28%, #fff3d0, #ecc06a 62%, #c99a3e);
+  border:1.5px solid rgba(255,255,255,.85);
+  box-shadow:0 0 16px rgba(236,192,106,.8), inset 0 1px 2px rgba(255,255,255,.7), 0 3px 8px rgba(0,0,0,.4);
+}
+#logmodal{position:absolute;inset:0;z-index:2000;background:rgba(5,12,20,.45);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+#logform{width:min(420px,88vw);padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+#logform input[type=text],#logform textarea,#logform select,#logform input[type=date]{
+  background:var(--glass-lite);border:1px solid var(--edge);border-radius:10px;color:var(--ink);
+  padding:9px 11px;font-size:13px;outline:none;font-family:var(--sans);width:100%
+}
+#logform input:focus,#logform textarea:focus,#logform select:focus{border-color:var(--brass)}
+#logform select option{background:#12283e}
+#logform input[type=date]{color-scheme:dark}
+#logrow2{display:flex;gap:8px;align-items:center}
+#logrow2 select{flex:1.2}
+#logrow2 input{flex:1}
+#log-stars{display:flex;gap:3px;font-size:17px;cursor:pointer;flex:none}
+#log-stars .ti{color:var(--faint);transition:color .1s,transform .1s}
+#log-stars .ti:hover{transform:scale(1.2)}
+#logactions{display:flex;justify-content:flex-end;gap:8px;margin-top:2px}
+#logactions button{border-radius:999px;padding:8px 18px;font-size:13px;cursor:pointer;transition:all .15s}
+#log-cancel{background:none;border:1px solid var(--edge);color:var(--muted)}
+#log-cancel:hover{color:var(--ink);border-color:var(--edge-hi)}
+#log-save{background:linear-gradient(160deg,#f5d48c,var(--brass));border:1px solid rgba(255,255,255,.5);color:#0a1826;font-weight:600;box-shadow:0 0 14px rgba(236,192,106,.35)}
+#log-save:hover{box-shadow:0 0 20px rgba(236,192,106,.55)}
+
 /* ============ explore panel ============ */
 #explorepanel{flex:1 1 auto;min-height:120px}
 #scanstatus{font-size:11px;color:var(--muted);letter-spacing:0;text-transform:none;margin-left:auto;display:flex;align-items:center;gap:6px}

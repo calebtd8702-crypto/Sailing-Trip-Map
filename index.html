@@ -19,6 +19,16 @@
 
   <div class="panel glass" id="routepanel">
     <div class="phead"><i class="ti ti-route"></i> Course <span class="count" id="wpcount"></span></div>
+    <div id="voyagerow">
+      <span id="vdot"></span>
+      <select id="voyagesel"></select>
+      <button id="vnew" title="New voyage"><i class="ti ti-plus"></i></button>
+      <button id="vren" title="Rename voyage"><i class="ti ti-edit"></i></button>
+      <button id="vdel" title="Delete voyage"><i class="ti ti-trash"></i></button>
+      <button id="vexport" title="Export all data (voyages + logbook)"><i class="ti ti-database-export"></i></button>
+      <button id="vimport" title="Import data"><i class="ti ti-database-import"></i></button>
+      <input type="file" id="vimportfile" accept=".json" hidden>
+    </div>
     <div id="totals">
       <div><div class="v" id="t-dist">0</div><div class="l">nm total</div></div>
       <div><div class="v" id="t-time">—</div><div class="l">underway</div></div>
@@ -36,6 +46,16 @@
       <button id="gpx" title="Export GPX"><i class="ti ti-download"></i> GPX</button>
       <button id="clear" title="Clear course"><i class="ti ti-trash"></i> Clear</button>
     </div>
+  </div>
+
+  <div class="panel glass" id="logpanel">
+    <div class="phead" id="loghead"><i class="ti ti-notebook"></i> Logbook <span class="count" id="logcount"></span>
+      <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button id="logadd" title="Log the spot at map center"><i class="ti ti-plus"></i></button>
+        <i class="ti ti-chevron-down" id="logchev"></i>
+      </span>
+    </div>
+    <div id="loglist" hidden></div>
   </div>
 
   <div class="panel glass" id="explorepanel">
@@ -78,9 +98,35 @@
 <div class="chip glass" id="hint"><i class="ti ti-hand-click"></i>&nbsp; Click the water to drop waypoints · drag to adjust · right-click a mark to remove it</div>
 <div class="chip glass" id="cursorpos">—</div>
 
+<div id="logmodal" hidden>
+  <div class="glass" id="logform">
+    <div class="phead" style="border-bottom:none;padding:0 0 10px"><i class="ti ti-star"></i> Log this spot</div>
+    <input type="text" id="log-name" placeholder="Name — e.g. Big Major's anchorage">
+    <div id="logrow2">
+      <select id="log-cat">
+        <option value="anchorage">Anchorage</option>
+        <option value="dive">Dive</option>
+        <option value="surf">Surf</option>
+        <option value="fishing">Fishing</option>
+        <option value="food">Food</option>
+        <option value="repair">Repair</option>
+        <option value="note">Note</option>
+      </select>
+      <input type="date" id="log-date">
+      <span id="log-stars"><i class="ti ti-star"></i><i class="ti ti-star"></i><i class="ti ti-star"></i><i class="ti ti-star"></i><i class="ti ti-star"></i></span>
+    </div>
+    <textarea id="log-notes" rows="3" placeholder="Notes — holding, swell direction, the guy who fixes outboards, best fritters…"></textarea>
+    <div id="logactions">
+      <button id="log-cancel">Cancel</button>
+      <button id="log-save"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/geo.js"></script>
 <script src="js/app.js"></script>
+<script src="js/voyage.js"></script>
 <script src="js/explore.js"></script>
 <script src="js/zones.js"></script>
 <script src="js/weather.js"></script>
