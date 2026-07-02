@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helm — course plotter</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+  :root{
+    --navy:#0b1c2c; --navy2:#102639; --panel:rgba(11,28,44,.92);
+    --ink:#eef3f6; --muted:#9db4c4; --brass:#e0b45c; --teal:#4fd1b5;
+    --coral:#f0997b; --line:rgba(157,180,196,.18);
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:-apple-system,'Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:var(--sans);background:var(--navy);color:var(--ink)}
+  #map{position:absolute;inset:0}
+  .leaflet-container{background:#0e2233;font-family:var(--sans)}
+
+  /* ---------- top bar ---------- */
+  #topbar{position:absolute;top:14px;left:352px;right:14px;z-index:1000;display:flex;gap:10px;align-items:center;pointer-events:none}
+  #topbar>*{pointer-events:auto}
+  .chip{background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  #searchwrap{flex:0 0 300px;position:relative}
+  #search{width:100%;background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:10px 14px 10px 36px;color:var(--ink);font-size:14px;outline:none}
+  #search:focus{border-color:var(--brass)}
+  #searchwrap .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
+  #wx b{color:var(--ink);font-weight:600}
+  #wx .arrow{display:inline-block;color:var(--teal);font-size:15px}
+  .spacer{flex:1}
+  .iconbtn{background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--muted);width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px}
+  .iconbtn:hover{color:var(--brass);border-color:var(--brass)}
+  .iconbtn.active{color:var(--navy);background:var(--brass);border-color:var(--brass)}
+
+  /* ---------- sidebar ---------- */
+  #side{position:absolute;top:14px;left:14px;bottom:14px;width:324px;z-index:1000;display:flex;flex-direction:column;gap:10px;transition:transform .25s}
+  #side.hidden{transform:translateX(-350px)}
+  .panel{background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  #brand{padding:16px 18px 14px;display:flex;align-items:center;gap:12px}
+  #brand .rose{color:var(--brass);font-size:26px}
+  #brand h1{font-family:var(--serif);font-size:21px;font-weight:400;letter-spacing:.5px}
+  #brand p{font-size:11.5px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+  #routepanel{flex:0 1 auto;display:flex;flex-direction:column;min-height:0}
+  .phead{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .phead .ti{color:var(--brass);font-size:16px}
+  .phead .count{margin-left:auto;color:var(--brass);letter-spacing:0}
+  #totals{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line)}
+  #totals div{padding:12px 6px;text-align:center}
+  #totals div+div{border-left:1px solid var(--line)}
+  #totals .v{font-family:var(--serif);font-size:19px;color:var(--ink)}
+  #totals .l{font-size:10.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
+  #speedrow{display:flex;gap:10px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+  #speedrow input[type=number]{width:56px;background:var(--navy2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:5px 8px;font-size:13px;text-align:center}
+  #speedrow input[type=datetime-local]{background:var(--navy2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:5px 6px;font-size:11.5px;flex:1;min-width:0;color-scheme:dark}
+  #wplist{overflow-y:auto;flex:1;min-height:0}
+  #wplist::-webkit-scrollbar,#poilist::-webkit-scrollbar{width:8px}
+  #wplist::-webkit-scrollbar-thumb,#poilist::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  .wp{padding:10px 18px;border-bottom:1px solid var(--line);cursor:pointer}
+  .wp:hover{background:rgba(224,180,92,.06)}
+  .wp .row1{display:flex;align-items:center;gap:10px}
+  .wp .num{width:22px;height:22px;border-radius:50%;background:var(--brass);color:var(--navy);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .wp .name{font-size:13.5px;font-weight:600;flex:1;color:var(--ink)}
+  .wp .del{color:var(--muted);font-size:15px;opacity:0;cursor:pointer}
+  .wp:hover .del{opacity:1}
+  .wp .del:hover{color:var(--coral)}
+  .wp .coords{font-size:11.5px;color:var(--muted);margin:4px 0 0 32px;font-variant-numeric:tabular-nums}
+  .wp .leg{font-size:11.5px;color:var(--teal);margin:2px 0 0 32px;font-variant-numeric:tabular-nums}
+  .wp .eta{color:var(--brass)}
+  #emptymsg{padding:22px 18px;font-size:13px;color:var(--muted);line-height:1.6}
+  #emptymsg .ti{color:var(--brass)}
+  #routebtns{display:flex;border-top:1px solid var(--line)}
+  #routebtns button{flex:1;background:none;border:none;color:var(--muted);font-size:12px;padding:10px 4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  #routebtns button:hover{color:var(--brass)}
+  #routebtns button+button{border-left:1px solid var(--line)}
+
+  /* ---------- explore panel ---------- */
+  #explorepanel{flex:1 1 auto;display:flex;flex-direction:column;min-height:120px}
+  #scanstatus{font-size:11px;color:var(--muted);letter-spacing:0;text-transform:none;margin-left:auto;display:flex;align-items:center;gap:6px}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pu 1s infinite alternate}
+  @keyframes pu{to{opacity:.25}}
+  #cats{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .cat{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px;user-select:none}
+  .cat .ti{font-size:13px}
+  .cat.on{color:var(--navy);border-color:transparent}
+  #poilist{overflow-y:auto;flex:1;min-height:0}
+  .poigroup summary{padding:9px 18px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);list-style:none}
+  .poigroup summary::-webkit-details-marker{display:none}
+  .poigroup summary .n{margin-left:auto;font-size:11px}
+  .poi{padding:8px 18px 8px 38px;font-size:13px;color:var(--ink);cursor:pointer;border-bottom:1px solid rgba(157,180,196,.08)}
+  .poi:hover{background:rgba(79,209,181,.07)}
+  .poi .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  #zoomhint{padding:18px;font-size:12.5px;color:var(--muted);line-height:1.6}
+
+  /* ---------- map markers ---------- */
+  .wpmark{background:var(--brass);color:#0b1c2c;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .leglabel{background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:10.5px;padding:2px 7px;white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .leglabel b{color:var(--brass)}
+  .poimark{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0b1c2c;font-size:12px;border:2px solid rgba(255,255,255,.85);box-shadow:0 2px 6px rgba(0,0,0,.45)}
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:12px;border:1px solid var(--line);backdrop-filter:blur(8px)}
+  .leaflet-popup-tip{background:var(--panel)}
+  .leaflet-popup-content{font-family:var(--sans);font-size:13px;line-height:1.5;margin:12px 16px}
+  .leaflet-popup-content b{font-family:var(--serif);font-weight:400;font-size:15px;color:var(--brass)}
+  .leaflet-popup-content a{color:var(--teal)}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+  .leaflet-control-zoom a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+  .leaflet-control-attribution{background:rgba(11,28,44,.75)!important;color:var(--muted)!important;font-size:9.5px!important}
+  .leaflet-control-attribution a{color:var(--teal)!important}
+
+  /* ---------- footer readout ---------- */
+  #cursorpos{position:absolute;bottom:14px;right:14px;z-index:1000;font-size:11.5px;font-variant-numeric:tabular-nums}
+  #hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:1000;font-size:12px}
+  #hint .ti{color:var(--brass)}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="side">
+  <div class="panel" id="brand">
+    <i class="ti ti-compass rose"></i>
+    <div><h1>Helm</h1><p>Passage planner</p></div>
+  </div>
+
+  <div class="panel" id="routepanel">
+    <div class="phead"><i class="ti ti-route"></i> Course <span class="count" id="wpcount"></span></div>
+    <div id="totals">
+      <div><div class="v" id="t-dist">0</div><div class="l">nm total</div></div>
+      <div><div class="v" id="t-time">—</div><div class="l">underway</div></div>
+      <div><div class="v" id="t-eta">—</div><div class="l">arrival</div></div>
+    </div>
+    <div id="speedrow">
+      <i class="ti ti-speedboat" style="color:var(--brass)"></i>
+      <input type="number" id="speed" value="6" min="1" max="40" step="0.5"> kn
+      <input type="datetime-local" id="depart" title="Departure time">
+    </div>
+    <div id="wplist"></div>
+    <div id="routebtns">
+      <button id="undo" title="Remove last waypoint"><i class="ti ti-arrow-back-up"></i> Undo</button>
+      <button id="reverse" title="Reverse course"><i class="ti ti-arrows-exchange"></i> Reverse</button>
+      <button id="gpx" title="Export GPX"><i class="ti ti-download"></i> GPX</button>
+      <button id="clear" title="Clear course"><i class="ti ti-trash"></i> Clear</button>
+    </div>
+  </div>
+
+  <div class="panel" id="explorepanel">
+    <div class="phead"><i class="ti ti-map-pin"></i> Ashore <span id="scanstatus"></span></div>
+    <div id="cats"></div>
+    <div id="poilist"><div id="zoomhint"><i class="ti ti-zoom-in" style="color:var(--brass)"></i> Zoom in on a coastline and everything nearby appears here — marinas &amp; anchorages first, then restaurants, hotels and sights as you get closer.</div></div>
+  </div>
+</div>
+
+<div id="topbar">
+  <div id="searchwrap"><i class="ti ti-search"></i><input id="search" placeholder="Search a place, harbor, island…"></div>
+  <div class="chip" id="wx" style="display:none"></div>
+  <div class="spacer"></div>
+  <div class="chip" id="modechip" style="cursor:pointer" title="Toggle plotting (P)"><i class="ti ti-pencil" style="color:var(--brass)"></i> <span id="modelabel">Plotting on</span></div>
+  <button class="iconbtn active" id="seamarks" title="Nautical marks overlay"><i class="ti ti-anchor"></i></button>
+  <button class="iconbtn" id="baseswap" title="Switch basemap"><i class="ti ti-world"></i></button>
+  <button class="iconbtn" id="sidetoggle" title="Toggle panel"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
+</div>
+
+<div class="chip" id="hint"><i class="ti ti-hand-click"></i>&nbsp; Click the water to drop waypoints · drag to adjust · right-click a mark to remove it</div>
+<div class="chip" id="cursorpos">—</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+/* ================= map & layers ================= */
+const map = L.map('map',{zoomControl:true, worldCopyJump:true}).setView([25.3, -77.6], 7);
+map.zoomControl.setPosition('bottomleft');
+
+const bases = [
+  L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+      {maxZoom:11, maxNativeZoom:10, attribution:'Esri Ocean · OpenSeaMap · © OpenStreetMap contributors'}),
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {minZoom:12, maxZoom:19, attribution:'© OpenStreetMap contributors · OpenSeaMap'})
+  ]),
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {maxZoom:19, attribution:'© OpenStreetMap contributors · OpenSeaMap'}),
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:19, attribution:'Esri World Imagery · OpenSeaMap'})
+];
+let baseIdx = 0;
+bases[0].addTo(map);
+const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18, opacity:.9}).addTo(map);
+
+document.getElementById('baseswap').onclick = () => {
+  map.removeLayer(bases[baseIdx]);
+  baseIdx = (baseIdx+1) % bases.length;
+  const lyr = bases[baseIdx].addTo(map);
+  if (lyr.bringToBack) lyr.bringToBack(); else lyr.eachLayer(l=>l.bringToBack());
+};
+document.getElementById('seamarks').onclick = (e) => {
+  const b = e.currentTarget;
+  if (map.hasLayer(seamarks)) { map.removeLayer(seamarks); b.classList.remove('active'); }
+  else { seamarks.addTo(map); b.classList.add('active'); }
+};
+document.getElementById('sidetoggle').onclick = () => {
+  const side = document.getElementById('side');
+  side.classList.toggle('hidden');
+  document.getElementById('topbar').style.left = side.classList.contains('hidden') ? '14px' : '352px';
+};
+
+/* ================= geo math ================= */
+const R_NM = 3440.065;
+const rad = d => d*Math.PI/180;
+function distNm(a,b){
+  const dLat = rad(b.lat-a.lat), dLon = rad(b.lng-a.lng);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R_NM*Math.asin(Math.sqrt(h));
+}
+function bearing(a,b){
+  const y = Math.sin(rad(b.lng-a.lng))*Math.cos(rad(b.lat));
+  const x = Math.cos(rad(a.lat))*Math.sin(rad(b.lat)) - Math.sin(rad(a.lat))*Math.cos(rad(b.lat))*Math.cos(rad(b.lng-a.lng));
+  return (Math.atan2(y,x)*180/Math.PI + 360) % 360;
+}
+function fmtCoord(lat,lng){
+  const f = (v,pos,neg) => {
+    const h = v>=0?pos:neg, av=Math.abs(v), d=Math.floor(av), m=(av-d)*60;
+    return `${d}°${m.toFixed(2).padStart(5,'0')}′ ${h}`;
+  };
+  return `${f(lat,'N','S')}  ${f(lng,'E','W')}`;
+}
+function fmtDur(hours){
+  if (!isFinite(hours)) return '—';
+  const m = Math.round(hours*60), d = Math.floor(m/1440), h = Math.floor((m%1440)/60), mm = m%60;
+  return (d?d+'d ':'') + (h?h+'h ':'') + (d?'' : mm+'m');
+}
+
+/* ================= course state ================= */
+let wps = [];            // {lat,lng,name}
+let wpMarkers = [], legLabels = [], routeLine = null, plotting = true;
+
+try { wps = JSON.parse(localStorage.getItem('helm-route')||'[]'); } catch(e){}
+const speedEl = document.getElementById('speed');
+const departEl = document.getElementById('depart');
+speedEl.value = localStorage.getItem('helm-speed') || 6;
+
+function persist(){
+  localStorage.setItem('helm-route', JSON.stringify(wps));
+  localStorage.setItem('helm-speed', speedEl.value);
+}
+
+function wpIcon(i){
+  return L.divIcon({className:'', html:`<div class="wpmark" style="width:26px;height:26px">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13]});
+}
+
+function render(){
+  wpMarkers.forEach(m=>map.removeLayer(m)); wpMarkers=[];
+  legLabels.forEach(m=>map.removeLayer(m)); legLabels=[];
+  if (routeLine) { map.removeLayer(routeLine); routeLine=null; }
+
+  if (wps.length > 1){
+    routeLine = L.polyline(wps, {color:'#e0b45c', weight:3, dashArray:'8 7', opacity:.95}).addTo(map);
+  }
+
+  const speed = parseFloat(speedEl.value)||6;
+  const dep = departEl.value ? new Date(departEl.value) : null;
+  let cum = 0;
+  const listEl = document.getElementById('wplist');
+  listEl.innerHTML = '';
+
+  wps.forEach((p,i)=>{
+    const mk = L.marker(p, {icon:wpIcon(i), draggable:true}).addTo(map);
+    mk.on('drag', e => { wps[i] = {...wps[i], lat:e.latlng.lat, lng:e.latlng.lng}; });
+    mk.on('dragend', ()=>{ render(); });
+    mk.on('contextmenu', ()=>{ wps.splice(i,1); render(); });
+    mk.bindTooltip(p.name||`WP ${i+1}`, {direction:'top', offset:[0,-14], className:'leglabel'});
+    wpMarkers.push(mk);
+
+    let legHtml = '';
+    if (i>0){
+      const d = distNm(wps[i-1], p), brg = bearing(wps[i-1], p);
+      cum += d;
+      const mid = {lat:(wps[i-1].lat+p.lat)/2, lng:(wps[i-1].lng+p.lng)/2};
+      const lbl = L.marker(mid, {interactive:false, icon:L.divIcon({className:'', html:
+        `<div class="leglabel"><b>${d.toFixed(1)} nm</b> · ${Math.round(brg).toString().padStart(3,'0')}°</div>`, iconSize:null})});
+      lbl.addTo(map); legLabels.push(lbl);
+      let eta = '';
+      if (dep && !isNaN(dep)) {
+        const t = new Date(dep.getTime() + cum/speed*3600e3);
+        eta = ` · <span class="eta">ETA ${t.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
+      }
+      legHtml = `<div class="leg">↳ ${d.toFixed(1)} nm @ ${Math.round(brg).toString().padStart(3,'0')}°T · ${cum.toFixed(1)} nm cum${eta}</div>`;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'wp';
+    div.innerHTML = `<div class="row1"><div class="num">${i+1}</div><div class="name">${p.name||'Waypoint '+(i+1)}</div><i class="ti ti-x del" title="Remove"></i></div>
+      <div class="coords">${fmtCoord(p.lat,p.lng)}</div>${legHtml}`;
+    div.onclick = e => { if (e.target.classList.contains('del')) { wps.splice(i,1); render(); } else map.flyTo(p, Math.max(map.getZoom(),11)); };
+    div.ondblclick = () => { const n = prompt('Name this waypoint:', p.name||''); if (n!==null){ wps[i].name = n; render(); } };
+    listEl.appendChild(div);
+  });
+
+  if (!wps.length) listEl.innerHTML = `<div id="emptymsg"><i class="ti ti-hand-click"></i> Click anywhere on the water to drop your first waypoint and start charting a course.</div>`;
+
+  document.getElementById('wpcount').textContent = wps.length ? wps.length + ' marks' : '';
+  document.getElementById('t-dist').textContent = cum ? cum.toFixed(1) : '0';
+  document.getElementById('t-time').textContent = cum ? fmtDur(cum/speed) : '—';
+  let etaTxt = '—';
+  if (cum && dep && !isNaN(dep)) etaTxt = new Date(dep.getTime()+cum/speed*3600e3).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  document.getElementById('t-eta').textContent = etaTxt;
+  persist();
+}
+
+map.on('click', e => {
+  if (!plotting) return;
+  wps.push({lat:e.latlng.lat, lng:e.latlng.lng});
+  render();
+});
+
+document.getElementById('undo').onclick = ()=>{ wps.pop(); render(); };
+document.getElementById('clear').onclick = ()=>{ if (!wps.length || confirm('Clear the whole course?')){ wps=[]; render(); } };
+document.getElementById('reverse').onclick = ()=>{ wps.reverse(); render(); };
+speedEl.oninput = render; departEl.oninput = render;
+
+const modechip = document.getElementById('modechip');
+function setPlotting(v){
+  plotting = v;
+  document.getElementById('modelabel').textContent = v ? 'Plotting on' : 'Plotting off';
+  modechip.querySelector('.ti').className = v ? 'ti ti-pencil' : 'ti ti-pencil-off';
+  modechip.querySelector('.ti').style.color = v ? 'var(--brass)' : 'var(--muted)';
+}
+modechip.onclick = ()=> setPlotting(!plotting);
+window.addEventListener('keydown', e=>{
+  if (e.target.tagName==='INPUT') return;
+  if (e.key==='p'||e.key==='P') setPlotting(!plotting);
+  if ((e.key==='z'&&(e.metaKey||e.ctrlKey))){ wps.pop(); render(); }
+});
+
+document.getElementById('gpx').onclick = ()=>{
+  if (!wps.length) return;
+  const pts = wps.map((p,i)=>`    <rtept lat="${p.lat.toFixed(6)}" lon="${p.lng.toFixed(6)}"><name>${(p.name||'WP'+(i+1)).replace(/[<>&]/g,'')}</name></rtept>`).join('\n');
+  const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Helm" xmlns="http://www.topografix.com/GPX/1/1">\n  <rte>\n    <name>Helm course</name>\n${pts}\n  </rte>\n</gpx>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
+  a.download = 'helm-course.gpx';
+  a.click();
+};
+
+/* ================= cursor readout ================= */
+map.on('mousemove', e => document.getElementById('cursorpos').textContent = fmtCoord(e.latlng.lat, e.latlng.lng));
+
+/* ================= search (Nominatim) ================= */
+document.getElementById('search').addEventListener('keydown', async e=>{
+  if (e.key!=='Enter') return;
+  const q = e.target.value.trim(); if (!q) return;
+  e.target.disabled = true;
+  try{
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,{headers:{'Accept-Language':'en'}});
+    const js = await r.json();
+    if (js[0]) map.flyTo([+js[0].lat, +js[0].lon], 11, {duration:1.6});
+    else e.target.value = '';
+  }catch(err){}
+  e.target.disabled = false; e.target.focus();
+});
+
+/* ================= weather (Open-Meteo) ================= */
+let wxTimer = null;
+async function updateWx(){
+  const c = map.getCenter();
+  const el = document.getElementById('wx');
+  try{
+    const [wr, mr] = await Promise.allSettled([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat.toFixed(3)}&longitude=${c.lng.toFixed(3)}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn`).then(r=>r.json()),
+      fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${c.lat.toFixed(3)}&longitude=${c.lng.toFixed(3)}&current=wave_height,wave_period`).then(r=>r.json())
+    ]);
+    let html = '';
+    if (wr.status==='fulfilled' && wr.value.current){
+      const w = wr.value.current;
+      const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+      html += `<span class="arrow" style="transform:rotate(${w.wind_direction_10m+180}deg)">➤</span> <b>${Math.round(w.wind_speed_10m)} kn</b> ${dirs[Math.round(w.wind_direction_10m/22.5)%16]} · gust ${Math.round(w.wind_gusts_10m)}`;
+    }
+    if (mr.status==='fulfilled' && mr.value.current && mr.value.current.wave_height!=null){
+      html += ` &nbsp;<i class="ti ti-ripple" style="color:var(--teal)"></i> <b>${mr.value.current.wave_height.toFixed(1)} m</b> @ ${Math.round(mr.value.current.wave_period||0)}s`;
+    }
+    if (html){ el.innerHTML = html; el.style.display='flex'; }
+  }catch(err){}
+}
+
+/* ================= explore: live POIs from OpenStreetMap ================= */
+const CATS = {
+  marina:    {label:'Marinas',     icon:'ti-anchor',           color:'#e0b45c', on:true},
+  anchorage: {label:'Anchorages',  icon:'ti-lifebuoy',         color:'#4fd1b5', on:true},
+  fuel:      {label:'Fuel',        icon:'ti-gas-station',      color:'#ef9f27', on:true},
+  eat:       {label:'Eat & drink', icon:'ti-tools-kitchen-2',  color:'#f0997b', on:true},
+  stay:      {label:'Stay',        icon:'ti-bed',              color:'#afa9ec', on:true},
+  see:       {label:'See & do',    icon:'ti-camera',           color:'#85b7eb', on:true}
+};
+const poiLayer = L.layerGroup().addTo(map);
+let pois = [], lastFetchKey = '', scanTimer = null, scanning = false;
+const OVERPASS = [
+  'https://lz4.overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
+let epIdx = 0;
+async function overpassFetch(q){
+  for (let attempt = 0; attempt < OVERPASS.length; attempt++){
+    const url = OVERPASS[(epIdx + attempt) % OVERPASS.length];
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), 22000);
+    try{
+      const r = await fetch(url, {method:'POST', body:'data='+encodeURIComponent(q), signal:ctrl.signal});
+      clearTimeout(timer);
+      if (!r.ok) throw new Error('http '+r.status);
+      const js = await r.json();
+      epIdx = (epIdx + attempt) % OVERPASS.length;
+      return js;
+    }catch(err){ clearTimeout(timer); }
+  }
+  throw new Error('all overpass mirrors failed');
+}
+
+const catsEl = document.getElementById('cats');
+Object.entries(CATS).forEach(([k,c])=>{
+  const b = document.createElement('div');
+  b.className = 'cat' + (c.on?' on':'');
+  b.style.background = c.on ? c.color : 'transparent';
+  b.innerHTML = `<i class="ti ${c.icon}"></i>${c.label}`;
+  b.onclick = ()=>{ c.on=!c.on; b.classList.toggle('on',c.on); b.style.background = c.on?c.color:'transparent'; drawPois(); };
+  catsEl.appendChild(b);
+});
+
+function classify(t){
+  if (t.leisure==='marina' || t['seamark:type']==='harbour' || t.harbour) return 'marina';
+  if (t['seamark:type']==='anchorage' || t.anchorage) return 'anchorage';
+  if (t.waterway==='fuel' || (t.amenity==='fuel')) return 'fuel';
+  if (['restaurant','cafe','bar','pub','fast_food','ice_cream'].includes(t.amenity)) return 'eat';
+  if (['hotel','guest_house','hostel','apartment','resort'].includes(t.tourism)) return 'stay';
+  if (['attraction','museum','viewpoint','artwork','gallery','beach'].includes(t.tourism) || t.natural==='beach' || t.historic) return 'see';
+  return null;
+}
+function poiSub(t, cat){
+  const bits = [];
+  if (cat==='eat' && t.cuisine) bits.push(t.cuisine.split(';')[0].replace(/_/g,' '));
+  if (cat==='marina' && t['seamark:harbour:category']) bits.push(t['seamark:harbour:category'].replace(/_/g,' '));
+  if (t.tourism && cat==='see') bits.push(t.tourism);
+  if (t.historic) bits.push(t.historic.replace(/_/g,' '));
+  if (t.stars) bits.push('★'.repeat(Math.min(5,parseInt(t.stars)||0)));
+  return bits.join(' · ');
+}
+
+async function scanArea(){
+  const z = map.getZoom();
+  const status = document.getElementById('scanstatus');
+  if (z < 10){ status.innerHTML=''; return; }
+  const b = map.getBounds();
+  const key = [z>=13, b.getSouth().toFixed(2), b.getWest().toFixed(2), b.getNorth().toFixed(2), b.getEast().toFixed(2)].join(',');
+  if (key === lastFetchKey) return;
+  if (scanning){ clearTimeout(scanTimer); scanTimer = setTimeout(scanArea, 2500); return; }
+  scanning = true;
+  status.innerHTML = '<span class="pulse"></span> scanning…';
+  const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  let q = `[out:json][timeout:25];(
+    nwr["leisure"="marina"](${bbox});
+    nwr["seamark:type"~"harbour|anchorage"](${bbox});
+    nwr["waterway"="fuel"](${bbox});`;
+  if (z >= 13) q += `
+    node["amenity"~"restaurant|cafe|bar|pub"](${bbox});
+    nwr["tourism"~"hotel|guest_house|attraction|museum|viewpoint"](${bbox});
+    nwr["natural"="beach"]["name"](${bbox});`;
+  q += `);out center 400;`;
+  try{
+    const js = await overpassFetch(q);
+    pois = [];
+    const seen = new Set();
+    (js.elements||[]).forEach(el=>{
+      const t = el.tags||{};
+      const cat = classify(t); if (!cat) return;
+      const lat = el.lat ?? el.center?.lat, lng = el.lon ?? el.center?.lon;
+      if (lat==null) return;
+      const name = t.name || (cat==='anchorage'?'Anchorage':cat==='fuel'?'Fuel dock':null);
+      if (!name) return;
+      const dk = cat+'|'+name+'|'+lat.toFixed(3);
+      if (seen.has(dk)) return; seen.add(dk);
+      pois.push({cat, name, lat, lng, tags:t});
+    });
+    lastFetchKey = key;
+    drawPois();
+    status.textContent = pois.length + ' found';
+  }catch(err){
+    status.textContent = 'scan failed — retrying…';
+    setTimeout(()=>{ lastFetchKey=''; scanning=false; scanArea(); }, 9000);
+    return;
+  }
+  scanning = false;
+}
+
+function drawPois(){
+  poiLayer.clearLayers();
+  const list = document.getElementById('poilist');
+  const groups = {};
+  const capPerCat = 60;
+  Object.keys(CATS).forEach(k=>groups[k]=[]);
+  pois.forEach(p=>{ if (CATS[p.cat].on && groups[p.cat].length<capPerCat) groups[p.cat].push(p); });
+
+  let any = false;
+  list.innerHTML = '';
+  Object.entries(groups).forEach(([k,items])=>{
+    if (!items.length) return;
+    any = true;
+    const c = CATS[k];
+    items.forEach(p=>{
+      const mk = L.marker([p.lat,p.lng], {icon:L.divIcon({className:'', html:
+        `<div class="poimark" style="width:24px;height:24px;background:${c.color}"><i class="ti ${c.icon}"></i></div>`, iconSize:[24,24], iconAnchor:[12,12]})});
+      const t = p.tags;
+      let pop = `<b>${p.name}</b><br><span style="color:var(--muted);font-size:11px">${c.label}${poiSub(t,k)?' · '+poiSub(t,k):''}</span><br>
+        <span style="font-size:11px;font-variant-numeric:tabular-nums">${fmtCoord(p.lat,p.lng)}</span>`;
+      if (t.phone||t['contact:phone']) pop += `<br><i class="ti ti-phone"></i> ${t.phone||t['contact:phone']}`;
+      if (t.website||t['contact:website']) pop += `<br><a href="${t.website||t['contact:website']}" target="_blank"><i class="ti ti-external-link"></i> website</a>`;
+      if (t['addr:street']) pop += `<br><span style="font-size:11px;color:var(--muted)">${[t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')}</span>`;
+      pop += `<br><a href="#" onclick="addAsWaypoint(${p.lat},${p.lng},'${p.name.replace(/'/g,"\\'")}');return false"><i class="ti ti-route"></i> add to course</a>`;
+      mk.bindPopup(pop);
+      mk.addTo(poiLayer);
+      p._mk = mk;
+    });
+    const det = document.createElement('details');
+    det.className='poigroup'; det.open = (k==='marina'||k==='anchorage');
+    det.innerHTML = `<summary><i class="ti ${c.icon}" style="color:${c.color}"></i>${c.label}<span class="n">${items.length}</span></summary>`;
+    items.forEach(p=>{
+      const d = document.createElement('div');
+      d.className='poi';
+      d.innerHTML = p.name + (poiSub(p.tags,k)?`<div class="sub">${poiSub(p.tags,k)}</div>`:'');
+      d.onclick = ()=>{ map.flyTo([p.lat,p.lng], Math.max(map.getZoom(),15)); p._mk && p._mk.openPopup(); };
+      det.appendChild(d);
+    });
+    list.appendChild(det);
+  });
+  if (!any) list.innerHTML = `<div id="zoomhint"><i class="ti ti-zoom-in" style="color:var(--brass)"></i> ${map.getZoom()<10?'Zoom in on a coastline and everything nearby appears here — marinas &amp; anchorages first, then restaurants, hotels and sights as you get closer.':'Nothing charted in this view yet — pan along the coast or zoom to a harbor town.'}</div>`;
+}
+
+window.addAsWaypoint = (lat,lng,name)=>{ wps.push({lat,lng,name}); render(); map.closePopup(); };
+
+map.on('moveend zoomend', ()=>{
+  clearTimeout(scanTimer);
+  scanTimer = setTimeout(scanArea, 900);
+  clearTimeout(wxTimer);
+  if (map.getZoom()>=6) wxTimer = setTimeout(updateWx, 1400);
+});
+
+/* ================= boot ================= */
+const now = new Date(Date.now()+3600e3);
+now.setMinutes(0,0,0);
+departEl.value = now.toISOString().slice(0,16);
+render();
+if (wps.length>1) map.fitBounds(L.latLngBounds(wps).pad(0.3));
+updateWx();
+setTimeout(()=>{ const h=document.getElementById('hint'); h.style.transition='opacity 1s'; h.style.opacity='0'; setTimeout(()=>h.remove(),1000); }, 14000);
+</script>
+</body>
+</html>
