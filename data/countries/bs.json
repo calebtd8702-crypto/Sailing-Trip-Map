@@ -1,0 +1,21 @@
+{
+  "country": "The Bahamas",
+  "flag": "🇧🇸",
+  "entry": {
+    "ports": ["Nassau", "Freeport", "Bimini (Alice Town)", "West End", "Chub Cay", "George Town (Exuma)", "Marsh Harbour", "Green Turtle Cay"],
+    "process": "Fly the Q flag on arrival; captain clears in at the nearest port of entry with boat papers + passports (crew stays aboard until cleared). Apply via the Click2Clear portal to speed it up.",
+    "permit": "Cruising permit (fees effective Apr 2026): 30 days $150–$600 by length (≤50 ft = $250); 6 months ≤50 ft $300 (one free reentry); 12 months ≤50 ft $500 (two free reentries).",
+    "max_stay": "Visitors typically granted up to 8 months; cruising permits available to 12 months."
+  },
+  "money": "Bahamian dollar (BSD), pegged 1:1 to USD — US dollars accepted everywhere.",
+  "language": "English",
+  "fishing": "Fishing permit is separate from the cruising permit: $100 (<50 ft) / $300 (≥50 ft), valid 30 days, renewable. Spearfishing: free-diving only with Hawaiian sling or pole spear — no spearguns (illegal to possess), no scuba take, nothing within 200 yd of settled islands. Lobster season Aug 1 – Mar 31. Anchorage fees for foreign vessels are also separate ($50+ by length/duration).",
+  "notes": [
+    "VHF 16 monitored; BASRA (volunteer) handles sea rescue out of Nassau.",
+    "Hurricane season Jun–Nov — many insurers require a named-storm plan or being out of the box.",
+    "Provision hard in Nassau or George Town; out-island fuel, water and groceries are scarce and pricey.",
+    "Banks/ATMs only on bigger islands — carry cash for the out islands."
+  ],
+  "updated": "2026-07",
+  "sources": "Bahamas Customs / Southern Boating fee schedule (Apr 2026)"
+}
