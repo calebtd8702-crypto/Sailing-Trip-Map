@@ -180,6 +180,20 @@ html,body{height:100%;font-family:var(--sans);background:#0a1826;color:var(--ink
 .leaflet-control-attribution{background:rgba(10,24,38,.6)!important;color:var(--faint)!important;font-size:9.5px!important;backdrop-filter:blur(8px);border-radius:8px 0 0 0}
 .leaflet-control-attribution a{color:var(--teal)!important}
 
+/* ============ layers popover ============ */
+#layerspop{position:absolute;top:66px;right:66px;z-index:1100;width:230px;padding:14px 16px;border-radius:18px}
+.lp-title{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);margin:10px 0 8px}
+.lp-title:first-child{margin-top:0}
+#baseopts{display:flex;gap:6px}
+.lp-base{flex:1;background:var(--glass-lite);border:1px solid var(--edge);border-radius:12px;color:var(--muted);font-size:11px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .18s}
+.lp-base .ti{font-size:16px}
+.lp-base:hover{border-color:var(--edge-hi);color:var(--ink)}
+.lp-base.on{color:#0a1826;background:linear-gradient(160deg,#f5d48c,var(--brass));border-color:rgba(255,255,255,.5);box-shadow:0 0 14px rgba(236,192,106,.4)}
+.lp-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);padding:6px 0;cursor:pointer}
+.lp-row .ti{color:var(--brass);font-size:15px}
+.lp-row input[type=checkbox]{accent-color:#ecc06a;width:15px;height:15px}
+.lp-row input[type=range]{flex:1;accent-color:#ecc06a}
+
 /* ============ footer readouts ============ */
 #cursorpos{position:absolute;bottom:14px;right:14px;z-index:1000;font-size:11.5px;font-variant-numeric:tabular-nums}
 #hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:1000;font-size:12px}

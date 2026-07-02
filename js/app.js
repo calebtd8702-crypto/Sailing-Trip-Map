@@ -18,19 +18,55 @@ const bases = [
 ];
 let baseIdx = 0;
 bases[0].addTo(map);
-const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18, opacity:.9}).addTo(map);
+const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18, opacity:.9, zIndex:5}).addTo(map);
+const depth = L.tileLayer.wms('https://wms.gebco.net/mapserv', {
+  layers:'GEBCO_LATEST', format:'image/png', version:'1.3.0',
+  opacity:.55, zIndex:3, attribution:'GEBCO bathymetry'
+});
 
-document.getElementById('baseswap').onclick = () => {
+/* ---------- layers popover ---------- */
+const layersPop = document.getElementById('layerspop');
+const layerPrefs = (()=>{ try{ return JSON.parse(localStorage.getItem('helm-layers')||'{}'); }catch(e){ return {}; } })();
+function saveLayerPrefs(){
+  localStorage.setItem('helm-layers', JSON.stringify(layerPrefs));
+}
+function setBase(i){
+  if (i === baseIdx && map.hasLayer(bases[i])) return;
   map.removeLayer(bases[baseIdx]);
-  baseIdx = (baseIdx+1) % bases.length;
-  const lyr = bases[baseIdx].addTo(map);
+  baseIdx = i;
+  const lyr = bases[i].addTo(map);
   if (lyr.bringToBack) lyr.bringToBack(); else lyr.eachLayer(l=>l.bringToBack());
+  document.querySelectorAll('.lp-base').forEach(b=>b.classList.toggle('on', +b.dataset.b===i));
+  layerPrefs.base = i; saveLayerPrefs();
+}
+document.querySelectorAll('.lp-base').forEach(b=> b.onclick = ()=> setBase(+b.dataset.b));
+document.getElementById('layersbtn').onclick = (e)=>{
+  layersPop.hidden = !layersPop.hidden;
+  e.currentTarget.classList.toggle('active', !layersPop.hidden);
 };
-document.getElementById('seamarks').onclick = (e) => {
-  const b = e.currentTarget;
-  if (map.hasLayer(seamarks)) { map.removeLayer(seamarks); b.classList.remove('active'); }
-  else { seamarks.addTo(map); b.classList.add('active'); }
+document.addEventListener('click', e=>{
+  if (!layersPop.hidden && !layersPop.contains(e.target) && !document.getElementById('layersbtn').contains(e.target)){
+    layersPop.hidden = true;
+    document.getElementById('layersbtn').classList.remove('active');
+  }
+});
+document.getElementById('ov-seamarks').onchange = e=>{
+  e.target.checked ? seamarks.addTo(map) : map.removeLayer(seamarks);
+  layerPrefs.seamarks = e.target.checked; saveLayerPrefs();
 };
+document.getElementById('ov-depth').onchange = e=>{
+  e.target.checked ? depth.addTo(map) : map.removeLayer(depth);
+  document.getElementById('depthrow').style.display = e.target.checked ? 'flex' : 'none';
+  layerPrefs.depth = e.target.checked; saveLayerPrefs();
+};
+document.getElementById('depth-op').oninput = e=>{
+  depth.setOpacity(e.target.value/100);
+  layerPrefs.depthOp = +e.target.value; saveLayerPrefs();
+};
+if (layerPrefs.base) setBase(layerPrefs.base);
+if (layerPrefs.seamarks === false){ map.removeLayer(seamarks); document.getElementById('ov-seamarks').checked = false; }
+if (layerPrefs.depthOp){ document.getElementById('depth-op').value = layerPrefs.depthOp; depth.setOpacity(layerPrefs.depthOp/100); }
+if (layerPrefs.depth){ depth.addTo(map); document.getElementById('ov-depth').checked = true; document.getElementById('depthrow').style.display = 'flex'; }
 document.getElementById('sidetoggle').onclick = () => {
   const side = document.getElementById('side');
   side.classList.toggle('hidden');

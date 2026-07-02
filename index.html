@@ -50,9 +50,21 @@
   <div class="chip glass" id="wx" style="display:none"></div>
   <div class="spacer"></div>
   <div class="chip gbtn" id="modechip" title="Toggle plotting (P)"><i class="ti ti-pencil" style="color:var(--brass)"></i> <span id="modelabel">Plotting on</span></div>
-  <button class="gbtn iconbtn active" id="seamarks" title="Nautical marks overlay"><i class="ti ti-anchor"></i></button>
-  <button class="gbtn iconbtn" id="baseswap" title="Switch basemap"><i class="ti ti-world"></i></button>
+  <button class="gbtn iconbtn" id="layersbtn" title="Map layers"><i class="ti ti-stack-2"></i></button>
   <button class="gbtn iconbtn" id="sidetoggle" title="Toggle panel"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
+</div>
+
+<div class="glass" id="layerspop" hidden>
+  <div class="lp-title">Basemap</div>
+  <div id="baseopts">
+    <button class="lp-base on" data-b="0"><i class="ti ti-map-2"></i> Chart</button>
+    <button class="lp-base" data-b="1"><i class="ti ti-road"></i> Streets</button>
+    <button class="lp-base" data-b="2"><i class="ti ti-satellite"></i> Satellite</button>
+  </div>
+  <div class="lp-title">Overlays</div>
+  <label class="lp-row"><input type="checkbox" id="ov-seamarks" checked> <i class="ti ti-anchor"></i> Seamarks &amp; buoys</label>
+  <label class="lp-row"><input type="checkbox" id="ov-depth"> <i class="ti ti-wave-sine"></i> Depth shading</label>
+  <div class="lp-row" id="depthrow" style="display:none"><span style="font-size:11px;color:var(--faint)">Opacity</span><input type="range" id="depth-op" min="20" max="90" value="55" step="5"></div>
 </div>
 
 <div class="chip glass" id="hint"><i class="ti ti-hand-click"></i>&nbsp; Click the water to drop waypoints · drag to adjust · right-click a mark to remove it</div>
