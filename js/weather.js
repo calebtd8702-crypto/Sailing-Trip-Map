@@ -147,7 +147,15 @@ async function updateRouteWx(){
   if (maxW >= 0) txt += `max ${Math.round(maxW)} kn near ${nearestName(maxWs.cum)} ${maxWs.eta.toLocaleString([],{weekday:'short',hour:'numeric'})}`;
   if (maxH >= 0) txt += ` · seas to ${maxH.toFixed(1)} m`;
   if (plan.samples.some(s=>s.wind==null)) txt += ' · gray = beyond forecast';
-  const rough = maxW >= 25 || maxH >= 2.5;
+  let cyclone = null;
+  if (typeof zoneAt === 'function'){
+    for (const s of plan.samples){
+      cyclone = zoneAt(s.lat, s.lng, s.eta.getMonth()+1);
+      if (cyclone) break;
+    }
+  }
+  if (cyclone) txt += ` · crosses ${cyclone.name.replace(' basin','')} in season`;
+  const rough = maxW >= 25 || maxH >= 2.5 || !!cyclone;
   info.innerHTML = (rough ? '<span class="warn"><i class="ti ti-alert-triangle"></i> ' : '') + (txt || 'Passage forecast') + (rough ? '</span>' : '');
   box.hidden = false;
 }

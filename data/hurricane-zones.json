@@ -1,0 +1,61 @@
+{
+  "note": "Simplified tropical cyclone basin polygons with climatological active months (NOAA/WMO). Coordinates are [lat, lng]; longitudes may exceed 180 to span the antimeridian. Planning aid only.",
+  "zones": [
+    {
+      "name": "North Atlantic hurricane basin",
+      "season": "June – November, peak Aug–Oct",
+      "months": [6, 7, 8, 9, 10, 11],
+      "peak": [8, 9, 10],
+      "poly": [[8, -98], [22, -100], [31, -98], [45, -75], [45, -40], [25, -20], [10, -25], [8, -60]]
+    },
+    {
+      "name": "Eastern North Pacific basin",
+      "season": "mid-May – November, peak Jul–Sep",
+      "months": [5, 6, 7, 8, 9, 10, 11],
+      "peak": [7, 8, 9],
+      "poly": [[5, -140], [20, -140], [30, -120], [25, -105], [18, -100], [8, -85], [5, -95]]
+    },
+    {
+      "name": "Central North Pacific basin (Hawaiʻi)",
+      "season": "June – November, peak Aug–Sep",
+      "months": [6, 7, 8, 9, 10, 11],
+      "peak": [8, 9],
+      "poly": [[5, -180], [28, -180], [28, -140], [5, -140]]
+    },
+    {
+      "name": "Western North Pacific typhoon basin",
+      "season": "possible year-round, main season May – December, peak Jul–Nov",
+      "months": [5, 6, 7, 8, 9, 10, 11, 12],
+      "peak": [7, 8, 9, 10, 11],
+      "poly": [[2, 105], [25, 105], [45, 120], [45, 150], [30, 180], [5, 180], [2, 130]]
+    },
+    {
+      "name": "North Indian Ocean basin",
+      "season": "two seasons: April – June and September – December",
+      "months": [4, 5, 6, 9, 10, 11, 12],
+      "peak": [5, 10, 11],
+      "poly": [[5, 50], [25, 50], [27, 60], [23, 70], [25, 80], [23, 93], [10, 95], [5, 80]]
+    },
+    {
+      "name": "South-West Indian Ocean basin",
+      "season": "November – April, peak Jan–Mar",
+      "months": [11, 12, 1, 2, 3, 4],
+      "peak": [1, 2, 3],
+      "poly": [[-5, 35], [-5, 90], [-30, 80], [-30, 30]]
+    },
+    {
+      "name": "Australian region basin",
+      "season": "November – April, peak Jan–Mar",
+      "months": [11, 12, 1, 2, 3, 4],
+      "peak": [1, 2, 3],
+      "poly": [[-5, 90], [-5, 150], [-30, 150], [-30, 100]]
+    },
+    {
+      "name": "South Pacific basin",
+      "season": "November – April, peak Jan–Mar",
+      "months": [11, 12, 1, 2, 3, 4],
+      "peak": [1, 2, 3],
+      "poly": [[-5, 150], [-5, 230], [-25, 230], [-30, 190], [-30, 155]]
+    }
+  ]
+}
