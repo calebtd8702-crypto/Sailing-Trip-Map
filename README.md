@@ -1,6 +1,6 @@
 # Helm — Sailing Trip Map
 
-A liquid-glass passage planner for charting a life at sea: plot courses anywhere on Earth, see the weather you'll actually get along the way, find the marinas, wrecks, surf breaks and dive sites when you zoom in, and keep a versioned logbook of everywhere you've been.
+A liquid-glass passage planner for charting a life at sea: plot courses on a real 3D globe, see the weather you'll actually get along the way, find the marinas, wrecks, surf breaks and dive sites when you zoom in, and keep a versioned logbook of everywhere you've been. Zoomed out it's a planet (MapLibre GL globe projection); zoomed in it flattens seamlessly into full chart detail.
 
 Single-page web app. No build, no install, no API keys.
 

@@ -30,17 +30,24 @@ function persistVoyages(){
 }
 
 /* ---------- ghost routes (inactive voyages) ---------- */
-const ghostLayer = L.layerGroup().addTo(map);
 function renderGhosts(){
-  ghostLayer.clearLayers();
-  voyages.forEach(v=>{
-    if (v.id === activeId || (v.wps||[]).length < 2) return;
-    L.polyline(v.wps, {color:v.color, weight:2.5, opacity:.4, dashArray:'3 7'})
-      .bindTooltip(`${v.name} · ${v.wps.length} marks — click to open`, {sticky:true, className:'leglabel'})
-      .on('click', ()=> switchVoyage(v.id))
-      .addTo(ghostLayer);
+  if (!mapReady){ whenMapReady(renderGhosts); return; }
+  map.getSource('ghost').setData({type:'FeatureCollection', features:
+    voyages.filter(v=> v.id!==activeId && (v.wps||[]).length>1).map(v=>({
+      type:'Feature',
+      properties:{id:v.id, color:v.color, name:v.name, n:v.wps.length},
+      geometry:{type:'LineString', coordinates:v.wps.map(p=>[p.lng,p.lat])}
+    }))
   });
 }
+whenMapReady(()=>{
+  map.on('click','ghost-line', e=>{
+    const f = e.features && e.features[0];
+    if (f) switchVoyage(f.properties.id);
+  });
+  map.on('mouseenter','ghost-line', ()=> map.getCanvas().style.cursor='pointer');
+  map.on('mouseleave','ghost-line', ()=> map.getCanvas().style.cursor='');
+});
 
 /* ---------- voyage UI ---------- */
 const vsel = document.getElementById('voyagesel');
@@ -60,7 +67,7 @@ function switchVoyage(id){
   wps = activeVoyage().wps;
   refreshVoyageUI();
   render();
-  if (wps.length>1) map.fitBounds(L.latLngBounds(wps).pad(0.3));
+  fitWps(wps);
 }
 vsel.onchange = e => switchVoyage(e.target.value);
 document.getElementById('vnew').onclick = ()=>{
@@ -119,7 +126,7 @@ const LOGCATS = {
   repair:   {label:'Repair',    icon:'ti-tool'},
   note:     {label:'Note',      icon:'ti-note'}
 };
-const logLayer = L.layerGroup().addTo(map);
+let logMarkers = [];
 let pendingLog = null, logRating = 0;
 
 window.logSpot = (lat, lng, name)=>{
@@ -164,7 +171,7 @@ window.deleteLog = id=>{
 };
 
 function drawLogbook(){
-  logLayer.clearLayers();
+  logMarkers.forEach(m=>m.remove()); logMarkers=[];
   const list = document.getElementById('loglist');
   list.innerHTML = '';
   document.getElementById('logcount').textContent = logbook.length || '';
@@ -175,20 +182,19 @@ function drawLogbook(){
   logbook.forEach(l=>{
     const c = LOGCATS[l.cat] || LOGCATS.note;
     const stars = l.rating ? '★'.repeat(l.rating) : '';
-    const mk = L.marker([l.lat,l.lng], {icon:L.divIcon({className:'', html:
-      `<div class="logmark"><i class="ti ti-star-filled"></i></div>`, iconSize:[26,26], iconAnchor:[13,13]})});
-    mk.bindPopup(`<b>${l.name}</b><br>
+    const mk = domMarker(`<div class="logmark"><i class="ti ti-star-filled"></i></div>`, l.lat, l.lng, {
+      popup:`<b>${l.name}</b><br>
       <span style="color:var(--muted);font-size:11px"><i class="ti ${c.icon}"></i> ${c.label} · ${l.date}${stars?' · <span style="color:var(--brass)">'+stars+'</span>':''}</span>
       ${l.notes?`<br>${l.notes.replace(/</g,'&lt;')}`:''}
-      <br><a href="#" onclick="deleteLog('${l.id}');return false" style="color:var(--danger)"><i class="ti ti-trash"></i> remove</a>`);
-    mk.addTo(logLayer);
+      <br><a href="#" onclick="deleteLog('${l.id}');return false" style="color:var(--danger)"><i class="ti ti-trash"></i> remove</a>`});
+    logMarkers.push(mk);
     l._mk = mk;
 
     const d = document.createElement('div');
     d.className = 'logentry';
     d.innerHTML = `<div class="row1"><i class="ti ${c.icon}"></i><span class="lname">${l.name}</span><span class="lstars">${stars}</span></div>
       <div class="lsub">${l.date}${l.notes ? ' — ' + l.notes.slice(0,80).replace(/</g,'&lt;') + (l.notes.length>80?'…':'') : ''}</div>`;
-    d.onclick = ()=>{ map.flyTo([l.lat,l.lng], Math.max(map.getZoom(),12)); l._mk.openPopup(); };
+    d.onclick = ()=>{ flyToLL(l.lat, l.lng, Math.max(map.getZoom(),12)); if (!l._mk.getPopup().isOpen()) l._mk.togglePopup(); };
     list.appendChild(d);
   });
 }
@@ -211,7 +217,7 @@ if (!hadSavedData){
     if (js.logbook) logbook = js.logbook;
     wps = activeVoyage().wps;
     refreshVoyageUI(); render(); drawLogbook();
-    if (wps.length>1) map.fitBounds(L.latLngBounds(wps).pad(0.3));
+    fitWps(wps);
   }).catch(()=>{});
 }
 
@@ -220,4 +226,4 @@ wps = activeVoyage().wps;
 refreshVoyageUI();
 render();
 drawLogbook();
-if (wps.length>1) map.fitBounds(L.latLngBounds(wps).pad(0.3));
+if (wps.length>1) whenMapReady(()=> fitWps(wps));

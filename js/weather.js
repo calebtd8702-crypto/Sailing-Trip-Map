@@ -24,7 +24,7 @@ async function updateWx(){
   }catch(err){}
 }
 
-map.on('moveend zoomend', ()=>{
+map.on('moveend', ()=>{
   clearTimeout(wxTimer);
   if (map.getZoom()>=6) wxTimer = setTimeout(updateWx, 1400);
 });
@@ -32,8 +32,11 @@ map.on('moveend zoomend', ()=>{
 updateWx();
 
 /* ================= route forecast (wind & waves at transit time) ================= */
-const routeWxLayer = L.layerGroup().addTo(map);
 let rwxTimer = null, rwxKey = '';
+function setWxData(features){
+  if (!mapReady){ whenMapReady(()=>setWxData(features)); return; }
+  map.getSource('wx').setData({type:'FeatureCollection', features});
+}
 
 function windColor(kn){
   if (kn == null) return 'rgba(110,135,155,.35)';
@@ -82,7 +85,7 @@ function nearestName(cum){
 async function updateRouteWx(){
   const plan = sampleRoute();
   const box = document.getElementById('passage');
-  routeWxLayer.clearLayers();
+  setWxData([]);
   if (!plan){ box.hidden = true; rwxKey=''; return; }
   const key = JSON.stringify([plan.samples.map(s=>[s.lat.toFixed(2),s.lng.toFixed(2)]), plan.dep.getTime(), plan.speed]);
   if (key === rwxKey && !box.hidden) return;
@@ -119,12 +122,14 @@ async function updateRouteWx(){
     if (s.wave != null && s.wave > maxH){ maxH = s.wave; maxHs = s; }
   });
 
+  const segs = [];
   for (let i=1;i<plan.samples.length;i++){
     const a = plan.samples[i-1], b = plan.samples[i];
     const w = Math.max(a.wind ?? -1, b.wind ?? -1);
-    L.polyline([a,b], {color: windColor(w<0?null:w), weight:9, opacity:.5, className:'wxline', interactive:false}).addTo(routeWxLayer);
+    segs.push({type:'Feature', properties:{color: windColor(w<0?null:w)},
+      geometry:{type:'LineString', coordinates:[[a.lng,a.lat],[b.lng,b.lat]]}});
   }
-  if (routeLine) routeLine.bringToFront();
+  setWxData(segs);
 
   const bar = document.getElementById('passbar');
   bar.innerHTML = '';
@@ -135,7 +140,7 @@ async function updateRouteWx(){
     cell.title = `${s.eta.toLocaleString([],{weekday:'short',hour:'numeric'})} · ${s.cum.toFixed(0)} nm` +
       (s.wind!=null ? ` · ${Math.round(s.wind)} kn (g${Math.round(s.gust||0)})` : ' · beyond forecast') +
       (s.wave!=null ? ` · ${s.wave.toFixed(1)} m` : '');
-    cell.onclick = ()=> map.flyTo([s.lat,s.lng], Math.max(map.getZoom(),10));
+    cell.onclick = ()=> flyToLL(s.lat, s.lng, Math.max(map.getZoom(),10));
     bar.appendChild(cell);
   });
   const fmt = d => d.toLocaleString([],{weekday:'short',hour:'numeric'});

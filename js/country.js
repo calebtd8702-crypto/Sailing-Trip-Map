@@ -64,7 +64,7 @@ function flagEmoji(cc){
   return cc.toUpperCase().replace(/./g, ch => String.fromCodePoint(127397 + ch.charCodeAt(0)));
 }
 
-map.on('moveend zoomend', ()=>{
+map.on('moveend', ()=>{
   clearTimeout(ccTimer);
   ccTimer = setTimeout(checkCountry, 2500);
 });

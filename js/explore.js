@@ -13,7 +13,7 @@ const CATS = {
   stay:      {label:'Stay',        icon:'ti-bed',              color:'#afa9ec', on:true},
   see:       {label:'See & do',    icon:'ti-camera',           color:'#85b7eb', on:true}
 };
-const poiLayer = L.layerGroup().addTo(map);
+let poiMarkers = [];
 let pois = [], lastFetchKey = '', scanTimer = null, scanning = false;
 
 const OVERPASS = [
@@ -132,7 +132,7 @@ async function scanArea(){
 }
 
 function drawPois(){
-  poiLayer.clearLayers();
+  poiMarkers.forEach(m=>m.remove()); poiMarkers=[];
   const list = document.getElementById('poilist');
   const groups = {};
   const capPerCat = 60;
@@ -146,8 +146,6 @@ function drawPois(){
     any = true;
     const c = CATS[k];
     items.forEach(p=>{
-      const mk = L.marker([p.lat,p.lng], {icon:L.divIcon({className:'', html:
-        `<div class="poimark${k==='wreck'?' wreck':''}" style="width:25px;height:25px;--pc:${c.color}"><i class="ti ${c.icon}"></i></div>`, iconSize:[25,25], iconAnchor:[12,12]})});
       const t = p.tags;
       let pop = `<b>${p.name}</b><br><span style="color:var(--muted);font-size:11px">${c.label}${poiSub(t,k)?' · '+poiSub(t,k):''}</span><br>
         <span style="font-size:11px;font-variant-numeric:tabular-nums">${fmtCoord(p.lat,p.lng)}</span>`;
@@ -157,8 +155,10 @@ function drawPois(){
       const safeName = p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
       pop += `<br><a href="#" onclick="addAsWaypoint(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-route"></i> add to course</a>
         &nbsp;·&nbsp; <a href="#" onclick="logSpot(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-star"></i> log it</a>`;
-      mk.bindPopup(pop);
-      mk.addTo(poiLayer);
+      const mk = domMarker(
+        `<div class="poimark${k==='wreck'?' wreck':''}" style="width:25px;height:25px;--pc:${c.color}"><i class="ti ${c.icon}"></i></div>`,
+        p.lat, p.lng, {popup:pop});
+      poiMarkers.push(mk);
       p._mk = mk;
     });
     const det = document.createElement('details');
@@ -168,7 +168,7 @@ function drawPois(){
       const d = document.createElement('div');
       d.className='poi';
       d.innerHTML = p.name + (poiSub(p.tags,k)?`<div class="sub">${poiSub(p.tags,k)}</div>`:'');
-      d.onclick = ()=>{ map.flyTo([p.lat,p.lng], Math.max(map.getZoom(),15)); p._mk && p._mk.openPopup(); };
+      d.onclick = ()=>{ flyToLL(p.lat, p.lng, Math.max(map.getZoom(),15)); if (p._mk && !p._mk.getPopup().isOpen()) p._mk.togglePopup(); };
       det.appendChild(d);
     });
     list.appendChild(det);
@@ -176,7 +176,7 @@ function drawPois(){
   if (!any) list.innerHTML = `<div id="zoomhint"><i class="ti ti-zoom-in" style="color:var(--brass)"></i> ${map.getZoom()<10?'Zoom in on a coastline and everything nearby appears here — marinas &amp; anchorages first, then restaurants, hotels and sights as you get closer.':'Nothing charted in this view yet — pan along the coast or zoom to a harbor town.'}</div>`;
 }
 
-map.on('moveend zoomend', ()=>{
+map.on('moveend', ()=>{
   clearTimeout(scanTimer);
   scanTimer = setTimeout(scanArea, 900);
 });
