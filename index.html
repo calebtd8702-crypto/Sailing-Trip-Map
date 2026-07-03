@@ -39,6 +39,7 @@
       <input type="number" id="speed" value="6" min="1" max="40" step="0.5"> kn
       <input type="datetime-local" id="depart" title="Departure time">
     </div>
+    <div id="budgetrow" title="Voyage budget"><i class="ti ti-coins"></i><span id="budgetsum"></span></div>
     <div id="wplist"></div>
     <div id="routebtns">
       <button id="undo" title="Remove last waypoint"><i class="ti ti-arrow-back-up"></i> Undo</button>
@@ -100,6 +101,19 @@
 
 <div class="glass" id="countrycard" hidden></div>
 
+<div id="budgetmodal" hidden>
+  <div class="glass" id="budgetform">
+    <button class="cc-close" id="b-close"><i class="ti ti-x"></i></button>
+    <div class="phead" style="border-bottom:none;padding:0 0 10px"><i class="ti ti-coins"></i> Voyage budget</div>
+    <div id="b-inputs">
+      <label>Crew <input type="number" id="b-crew" min="1" max="12" step="1"></label>
+      <label>Boat ft <input type="number" id="b-ft" min="20" max="120" step="1"></label>
+      <label>Budget $ <input type="number" id="b-budget" min="0" step="100" placeholder="optional"></label>
+    </div>
+    <div id="b-body"></div>
+  </div>
+</div>
+
 <div id="logmodal" hidden>
   <div class="glass" id="logform">
     <div class="phead" style="border-bottom:none;padding:0 0 10px"><i class="ti ti-star"></i> Log this spot</div>
@@ -133,5 +147,6 @@
 <script src="js/zones.js"></script>
 <script src="js/weather.js"></script>
 <script src="js/country.js"></script>
+<script src="js/budget.js"></script>
 </body>
 </html>

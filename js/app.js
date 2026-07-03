@@ -208,9 +208,23 @@ function render(){
     const div = document.createElement('div');
     div.className = 'wp';
     div.innerHTML = `<div class="row1"><div class="num">${i+1}</div><div class="name">${p.name||'Waypoint '+(i+1)}</div><i class="ti ti-x del" title="Remove"></i></div>
-      <div class="coords">${fmtCoord(p.lat,p.lng)}</div>${legHtml}`;
-    div.onclick = e => { if (e.target.classList.contains('del')) { wps.splice(i,1); render(); } else flyToLL(p.lat, p.lng, Math.max(map.getZoom(),11)); };
-    div.ondblclick = () => { const n = prompt('Name this waypoint:', p.name||''); if (n!==null){ wps[i].name = n; render(); } };
+      <div class="coords">${fmtCoord(p.lat,p.lng)}</div>${legHtml}
+      <div class="wpstay"><i class="ti ti-moon"></i>
+        <input type="number" class="wpnights" value="${p.nights||0}" min="0" max="90" title="Nights at this stop">
+        <span class="wpn-lbl">night${(p.nights||0)===1?'':'s'}</span>
+        <select class="wpstaysel" title="Where you sleep"${(p.nights||0)?'':' style="display:none"'}>
+          <option value="anchor"${(p.stay||'anchor')==='anchor'?' selected':''}>at anchor</option>
+          <option value="marina"${p.stay==='marina'?' selected':''}>marina slip</option>
+          <option value="shore"${p.stay==='shore'?' selected':''}>ashore (hotel)</option>
+        </select></div>`;
+    div.onclick = e => {
+      if (e.target.closest('.wpstay')) return;
+      if (e.target.classList.contains('del')) { wps.splice(i,1); render(); }
+      else flyToLL(p.lat, p.lng, Math.max(map.getZoom(),11));
+    };
+    div.ondblclick = e => { if (e.target.closest('.wpstay')) return; const n = prompt('Name this waypoint:', p.name||''); if (n!==null){ wps[i].name = n; render(); } };
+    div.querySelector('.wpnights').onchange = e => { wps[i].nights = Math.max(0, +e.target.value||0); render(); };
+    div.querySelector('.wpstaysel').onchange = e => { wps[i].stay = e.target.value; render(); };
     listEl.appendChild(div);
   });
 
@@ -225,6 +239,7 @@ function render(){
   persist();
   if (typeof renderGhosts === 'function') renderGhosts();
   if (typeof scheduleRouteWx === 'function') scheduleRouteWx();
+  if (typeof budgetRowText === 'function') budgetRowText();
 }
 
 map.on('click', e => {
