@@ -11,35 +11,104 @@ const map = new maplibregl.Map({
   style:{
     version:8,
     projection:{type:'globe'},
+    glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
     sky:{
-      'sky-color':'#0a1a30','horizon-color':'#16324e','fog-color':'#0a1826',
-      'sky-horizon-blend':.6,'horizon-fog-blend':.6,'fog-ground-blend':.8,
-      'atmosphere-blend':['interpolate',['linear'],['zoom'],0,.9,6,.35,8,0]
+      'sky-color':'#0a1a30','horizon-color':'#1e4266','fog-color':'#11253d',
+      'sky-horizon-blend':.6,'horizon-fog-blend':.5,'fog-ground-blend':.9,
+      'atmosphere-blend':['interpolate',['linear'],['zoom'],0,.35,5,.15,7,0]
     },
     sources:{
-      'esri-ocean':{type:'raster', tileSize:256, maxzoom:10, attribution:'Esri Ocean · OpenSeaMap · © OpenStreetMap contributors',
+      'esri-ocean':{type:'raster', tileSize:256, maxzoom:10, attribution:'Esri Ocean · OpenSeaMap · OpenFreeMap · © OpenStreetMap contributors',
         tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}']},
-      'osm':{type:'raster', tileSize:256, maxzoom:19, attribution:'© OpenStreetMap contributors · OpenSeaMap',
-        tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png']},
       'satellite':{type:'raster', tileSize:256, maxzoom:19, attribution:'Esri World Imagery · OpenSeaMap',
         tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']},
+      'omt':{type:'vector', url:'https://tiles.openfreemap.org/planet'},
       'seamarks':{type:'raster', tileSize:256, minzoom:8, maxzoom:18,
         tiles:['https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png']},
       'depth':{type:'raster', tileSize:256, attribution:'GEBCO bathymetry',
         tiles:['https://wms.gebco.net/mapserv?service=WMS&request=GetMap&version=1.3.0&layers=GEBCO_LATEST&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png']}
     },
     layers:[
-      {id:'bg', type:'background', paint:{'background-color':'#0d2032'}},
+      {id:'bg', type:'background', paint:{'background-color':['interpolate',['linear'],['zoom'],11.4,'#0d2032',12,'#152a3d']}},
       {id:'esri-ocean-layer', type:'raster', source:'esri-ocean', maxzoom:12},
-      {id:'osm-detail-layer', type:'raster', source:'osm', minzoom:12},
-      {id:'osm-full-layer', type:'raster', source:'osm', layout:{visibility:'none'}},
       {id:'satellite-layer', type:'raster', source:'satellite', layout:{visibility:'none'}},
       {id:'depth-layer', type:'raster', source:'depth', layout:{visibility:'none'}, paint:{'raster-opacity':.55}},
+
+      {id:'v-wood', type:'fill', source:'omt', 'source-layer':'landcover', minzoom:11,
+        filter:['in',['get','class'],['literal',['wood','forest','grass']]], paint:{'fill-color':'#15302c','fill-opacity':.7}},
+      {id:'v-sand', type:'fill', source:'omt', 'source-layer':'landcover', minzoom:11,
+        filter:['==',['get','class'],'sand'], paint:{'fill-color':'#33404a','fill-opacity':.6}},
+      {id:'v-park', type:'fill', source:'omt', 'source-layer':'park', minzoom:11,
+        paint:{'fill-color':'#143331','fill-opacity':.5}},
+      {id:'v-water', type:'fill', source:'omt', 'source-layer':'water', minzoom:11,
+        paint:{'fill-color':'#0d2032'}},
+      {id:'v-waterway', type:'line', source:'omt', 'source-layer':'waterway', minzoom:11,
+        paint:{'line-color':'#12314a','line-width':['interpolate',['linear'],['zoom'],11,.5,18,3]}},
+      {id:'v-building', type:'fill', source:'omt', 'source-layer':'building', minzoom:15,
+        paint:{'fill-color':'#1d3550','fill-opacity':.65}},
+      {id:'v-road-minor', type:'line', source:'omt', 'source-layer':'transportation', minzoom:13,
+        filter:['in',['get','class'],['literal',['minor','service','track','path']]],
+        layout:{'line-cap':'round'}, paint:{'line-color':'#2c455e','line-width':['interpolate',['linear'],['zoom'],13,.5,18,4]}},
+      {id:'v-road-mid', type:'line', source:'omt', 'source-layer':'transportation', minzoom:11,
+        filter:['in',['get','class'],['literal',['secondary','tertiary']]],
+        layout:{'line-cap':'round'}, paint:{'line-color':'#37536f','line-width':['interpolate',['linear'],['zoom'],11,1,18,6]}},
+      {id:'v-road-major', type:'line', source:'omt', 'source-layer':'transportation', minzoom:8,
+        filter:['in',['get','class'],['literal',['motorway','trunk','primary']]],
+        layout:{'line-cap':'round'}, paint:{'line-color':'#43617f','line-width':['interpolate',['linear'],['zoom'],8,.8,18,8]}},
+      {id:'v-boundary', type:'line', source:'omt', 'source-layer':'boundary', minzoom:2,
+        filter:['all',['<=',['get','admin_level'],2],['!=',['get','maritime'],1]],
+        paint:{'line-color':'#4a6b8a','line-width':1,'line-dasharray':[3,2],'line-opacity':.6}},
+
+      {id:'v-road-label', type:'symbol', source:'omt', 'source-layer':'transportation_name', minzoom:14,
+        layout:{'symbol-placement':'line','text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':10.5},
+        paint:{'text-color':'#9db4cd','text-halo-color':'#0a1826','text-halo-width':1.2}},
+      {id:'v-poi', type:'symbol', source:'omt', 'source-layer':'poi', minzoom:15,
+        filter:['all',['in',['get','class'],['literal',['restaurant','fast_food','cafe','bar','beer','ice_cream','lodging','attraction','museum','marina','harbor','beach','fuel','grocery','alcohol_shop']]],['<=',['get','rank'],20]],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':10,'text-max-width':8,'text-anchor':'top','text-offset':[0,.3],'text-optional':false},
+        paint:{'text-color':'#8fbecb','text-halo-color':'#0a1826','text-halo-width':1.1}},
+      {id:'v-water-name', type:'symbol', source:'omt', 'source-layer':'water_name', minzoom:2,
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Italic'],'text-size':11,'text-letter-spacing':.15},
+        paint:{'text-color':'#58809f','text-halo-color':'#0a1826','text-halo-width':1}},
+      {id:'v-place-island', type:'symbol', source:'omt', 'source-layer':'place', minzoom:9,
+        filter:['in',['get','class'],['literal',['island','islet']]],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Italic'],'text-size':10.5},
+        paint:{'text-color':'#9db4cd','text-halo-color':'#0a1826','text-halo-width':1.1}},
+      {id:'v-place-village', type:'symbol', source:'omt', 'source-layer':'place', minzoom:10,
+        filter:['in',['get','class'],['literal',['village','hamlet','suburb','neighbourhood']]],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':10.5},
+        paint:{'text-color':'#a7bccd','text-halo-color':'#0a1826','text-halo-width':1.2}},
+      {id:'v-place-town', type:'symbol', source:'omt', 'source-layer':'place', minzoom:8,
+        filter:['==',['get','class'],'town'],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':12},
+        paint:{'text-color':'#c9d6e2','text-halo-color':'#0a1826','text-halo-width':1.3}},
+      {id:'v-place-city', type:'symbol', source:'omt', 'source-layer':'place', minzoom:4,
+        filter:['==',['get','class'],'city'],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Bold'],
+          'text-size':['interpolate',['linear'],['zoom'],4,11.5,10,15]},
+        paint:{'text-color':'#e8eef4','text-halo-color':'#0a1826','text-halo-width':1.4}},
+      {id:'v-place-state', type:'symbol', source:'omt', 'source-layer':'place', minzoom:4, maxzoom:8,
+        filter:['==',['get','class'],'state'],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':10.5,'text-letter-spacing':.25,'text-transform':'uppercase'},
+        paint:{'text-color':'#7a95ab','text-halo-color':'#0a1826','text-halo-width':1.1}},
+      {id:'v-place-country', type:'symbol', source:'omt', 'source-layer':'place', minzoom:2, maxzoom:7,
+        filter:['==',['get','class'],'country'],
+        layout:{'text-field':['get','name'],'text-font':['Noto Sans Bold'],'text-size':['interpolate',['linear'],['zoom'],2,11,6,14],'text-letter-spacing':.1},
+        paint:{'text-color':'#b9cbdc','text-halo-color':'#0a1826','text-halo-width':1.3}},
+
       {id:'seamarks-layer', type:'raster', source:'seamarks', paint:{'raster-opacity':.9}}
     ]
   }
 });
+map.on('error', e => console.error('[helm map]', (e.error && e.error.message) || e.error || e));
 map.addControl(new maplibregl.NavigationControl({visualizePitch:false}), 'bottom-left');
+
+/* guard against containers that get their real size after init (iframes, rotations) */
+try{ new ResizeObserver(()=> map.resize()).observe(document.getElementById('map')); }catch(e){}
+window.addEventListener('resize', ()=> map.resize());
+[500, 1500, 4000].forEach(ms=> setTimeout(()=>{
+  const c = map.getCanvas();
+  if (Math.abs(c.clientWidth - c.parentElement.clientWidth) > 2) map.resize();
+}, ms));
 map.touchZoomRotate.disableRotation();
 map.dragRotate.disable();
 
@@ -100,14 +169,26 @@ function domMarker(html, lat, lng, opts={}){
 }
 
 /* ---------- layers popover ---------- */
-const BASE_GROUPS = [['esri-ocean-layer','osm-detail-layer'], ['osm-full-layer'], ['satellite-layer']];
+const V_FILLS = ['v-wood','v-sand','v-park','v-water','v-waterway'];
+const V_ROADS = ['v-road-minor','v-road-mid','v-road-major'];
+const V_LABELS = ['v-road-label','v-poi','v-water-name','v-place-island','v-place-village','v-place-town','v-place-city','v-place-state','v-place-country','v-boundary'];
 let baseIdx = 0, seamarksOn = true, depthOn = false;
 const layersPop = document.getElementById('layerspop');
 const layerPrefs = (()=>{ try{ return JSON.parse(localStorage.getItem('helm-layers')||'{}'); }catch(e){ return {}; } })();
 function saveLayerPrefs(){ localStorage.setItem('helm-layers', JSON.stringify(layerPrefs)); }
 function setBase(i){
   whenMapReady(()=>{
-    BASE_GROUPS.forEach((g,gi)=> g.forEach(id=> map.setLayoutProperty(id,'visibility', gi===i?'visible':'none')));
+    map.setLayoutProperty('esri-ocean-layer','visibility', i===0 ? 'visible' : 'none');
+    map.setLayoutProperty('satellite-layer','visibility', i===2 ? 'visible' : 'none');
+    const landVis = i===2 ? 'none' : 'visible';
+    V_FILLS.concat(V_ROADS,['v-building']).forEach(id=> map.setLayoutProperty(id,'visibility', landVis));
+    V_LABELS.forEach(id=> map.setLayoutProperty(id,'visibility','visible'));
+    const fillMin = i===1 ? 0 : 11;
+    V_FILLS.forEach(id=> map.setLayerZoomRange(id, fillMin, 24));
+    map.setLayerZoomRange('v-road-major', i===1 ? 4 : 8, 24);
+    map.setLayerZoomRange('v-road-mid', i===1 ? 9 : 11, 24);
+    map.setPaintProperty('bg','background-color',
+      i===1 ? '#152a3d' : i===2 ? '#0d2032' : ['interpolate',['linear'],['zoom'],11.4,'#0d2032',12,'#152a3d']);
   });
   baseIdx = i;
   document.querySelectorAll('.lp-base').forEach(b=>b.classList.toggle('on', +b.dataset.b===i));
@@ -285,8 +366,41 @@ window.addAsWaypoint = (lat,lng,name)=>{
   document.querySelectorAll('.maplibregl-popup').forEach(p=>p.remove());
 };
 
-/* ================= cursor readout ================= */
-map.on('mousemove', e => document.getElementById('cursorpos').textContent = fmtCoord(e.lngLat.lat, e.lngLat.lng));
+/* ================= cursor readout + hover locator ================= */
+let hoverTimer = null, lastPlaceKey = '';
+const placeCache = {};
+map.on('mousemove', e => {
+  document.getElementById('cursorcoords').textContent = fmtCoord(e.lngLat.lat, e.lngLat.lng);
+  clearTimeout(hoverTimer);
+  hoverTimer = setTimeout(()=> hoverLocate(e.lngLat), 700);
+});
+async function hoverLocate(ll){
+  const z = map.getZoom();
+  const tier = z<6 ? 3 : z<10 ? 8 : z<13 ? 10 : 14;
+  const prec = tier===14 ? 2 : 1;
+  const key = tier+':'+ll.lat.toFixed(prec)+','+ll.lng.toFixed(prec);
+  if (key === lastPlaceKey) return;
+  let info = placeCache[key];
+  if (info === undefined){
+    try{
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${ll.lat.toFixed(4)}&lon=${ll.lng.toFixed(4)}&zoom=${tier}&accept-language=en`);
+      const js = await r.json();
+      const a = js.address || {};
+      const parts = [
+        a.road || a.neighbourhood || a.suburb,
+        a.village || a.town || a.city || a.municipality || a.island || a.county,
+        tier <= 8 ? a.state : null,
+        a.country
+      ].filter(Boolean);
+      info = [...new Set(parts)].slice(0,3).join(' · ');
+      placeCache[key] = info;
+    }catch(err){ return; }
+  }
+  lastPlaceKey = key;
+  const el = document.getElementById('cursorplace');
+  el.textContent = info || '';
+  el.style.display = info ? 'inline' : 'none';
+}
 
 /* ================= search (Nominatim) ================= */
 document.getElementById('search').addEventListener('keydown', async e=>{

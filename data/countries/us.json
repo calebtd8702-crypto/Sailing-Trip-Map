@@ -1,0 +1,22 @@
+{
+  "country": "United States",
+  "flag": "🇺🇸",
+  "entry": {
+    "ports": ["Miami", "Key West", "Fort Lauderdale", "Charleston", "Norfolk", "New York", "San Diego", "Seattle", "Honolulu", "San Juan (PR)"],
+    "process": "US-flagged boat returning from abroad: report arrival to CBP immediately on reaching US waters — the CBP ROAM app lets you clear from the cockpit in most cases; everyone stays aboard until released. Foreign-flagged: report + present in person at a port of entry.",
+    "permit": "US boats need no domestic cruising permit; vessels 30 ft+ pay the ~$27.50/yr DTOPS user-fee decal for customs reentries. Foreign-flagged pleasure vessels get a cruising license (~$37, up to 1 year) at the first port of entry.",
+    "max_stay": "Citizens unlimited. Foreign crew arriving on a private vessel need a B-1/B-2 visa — ESTA visa-waiver does NOT cover private-boat arrivals; typically admitted up to 6 months."
+  },
+  "money": "US dollar (USD).",
+  "language": "English",
+  "fishing": "Licenses are per-state (e.g. Florida saltwater license; some out-of-state boats need their own). Targeting tuna, billfish or swordfish offshore requires the federal HMS Angling permit (~$26/yr). Spearfishing legal in most states with local rules — FL: no spearing within 100 yds of public beaches or bridges. FL lobster: 2-day mini-season late July, regular season Aug 6 – Mar 31.",
+  "notes": [
+    "CBP ROAM app is the shortcut — file your reentry from the anchorage instead of taxiing to an office.",
+    "VHF 16 monitored coast-wide; US Coast Guard SAR is the best in the world.",
+    "No-discharge zones are common (FL Keys, Chesapeake, much of New England) — use pumpouts.",
+    "Parts of Florida restrict anchoring near residential docks; mooring fields fill fast in the Keys.",
+    "Hurricane season Jun–Nov for the Gulf and East Coast — same insurance-box rules as the Bahamas."
+  ],
+  "updated": "2026-07",
+  "sources": "CBP / NOAA Fisheries / state agencies"
+}
