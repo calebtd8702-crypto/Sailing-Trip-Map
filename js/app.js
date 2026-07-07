@@ -164,7 +164,11 @@ function domMarker(html, lat, lng, opts={}){
   if (opts.title) el.title = opts.title;
   const mk = new maplibregl.Marker({element:el, anchor:'center', draggable:!!opts.draggable})
     .setLngLat([lng,lat]).addTo(map);
-  if (opts.popup) mk.setPopup(new maplibregl.Popup({offset:16, maxWidth:'300px'}).setHTML(opts.popup));
+  if (opts.popup){
+    const pp = new maplibregl.Popup({offset:16, maxWidth:'320px'}).setHTML(opts.popup);
+    if (opts.onPopupOpen) pp.on('open', opts.onPopupOpen);
+    mk.setPopup(pp);
+  }
   return mk;
 }
 
@@ -265,9 +269,12 @@ function render(){
   wps.forEach((p,i)=>{
     const mk = domMarker(`<div class="wpmark" style="width:27px;height:27px">${i+1}</div>`, p.lat, p.lng,
       {draggable:true, title:p.name||`WP ${i+1}`});
+    let justDragged = false;
+    mk.on('dragstart', ()=>{ justDragged = true; });
     mk.on('drag', ()=>{ const ll = mk.getLngLat(); wps[i] = {...wps[i], lat:ll.lat, lng:ll.lng}; });
-    mk.on('dragend', ()=> render());
+    mk.on('dragend', ()=>{ setTimeout(()=>justDragged=false, 200); render(); });
     mk.getElement().addEventListener('contextmenu', ev=>{ ev.preventDefault(); wps.splice(i,1); render(); });
+    mk.getElement().addEventListener('click', ev=>{ ev.stopPropagation(); if (!justDragged) openWpBriefing(i); });
     wpMarkers.push(mk);
 
     let legHtml = '';
@@ -359,6 +366,67 @@ document.getElementById('gpx').onclick = ()=>{
   a.download = vname.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.gpx';
   a.click();
 };
+
+/* ================= waypoint briefing ================= */
+let wpPopup = null;
+function nearestPoi(cat, from){
+  if (typeof pois === 'undefined' || !pois.length) return null;
+  let best = null, bd = Infinity;
+  pois.forEach(p=>{ if (p.cat!==cat) return; const d = distNm(from, p); if (d < bd){ bd = d; best = p; } });
+  return best ? {p:best, d:bd} : null;
+}
+function openWpBriefing(i){
+  const p = wps[i];
+  const speed = parseFloat(speedEl.value)||6;
+  const dep = departEl.value ? new Date(departEl.value) : null;
+  let cum = 0;
+  for (let j=1;j<=i;j++) cum += distNm(wps[j-1], wps[j]);
+  const eta = (dep && !isNaN(dep)) ? new Date(dep.getTime() + cum/speed*3600e3) : null;
+
+  const row = (icon, html) => `<div class="pp-row"><i class="ti ${icon}"></i><span>${html}</span></div>`;
+  let html = `<b>${p.name || 'Waypoint '+(i+1)}</b><br><span style="color:var(--muted);font-size:11px">mark ${i+1} of ${wps.length}</span>
+    <div class="pp-row"><i class="ti ti-current-location"></i><span style="font-variant-numeric:tabular-nums">${fmtCoord(p.lat,p.lng)}</span></div>`;
+  if (i>0) html += row('ti-route', `${cum.toFixed(1)} nm from start${eta ? ` · <span style="color:var(--brass)">ETA ${eta.toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})}</span>` : ''}`);
+  if (p.nights) html += row('ti-moon', `${p.nights} night${p.nights>1?'s':''} ${p.stay==='marina'?'in a marina slip':p.stay==='shore'?'ashore':'at anchor'}`);
+  html += row('ti-wind', `<span id="wpb-wx" class="pp-dim">fetching forecast…</span>`);
+
+  const near = [['marina','ti-anchor','Marina'],['fuel','ti-gas-station','Fuel'],['anchorage','ti-lifebuoy','Anchorage']]
+    .map(([cat,icon,label])=>{ const n = nearestPoi(cat, p); return n && n.d < 30 ? row(icon, `${label}: ${n.p.name} · ${n.d.toFixed(1)} nm`) : ''; }).join('');
+  html += near || row('ti-map-pin', '<span class="pp-dim">zoom in nearby to scan for marinas & fuel</span>');
+
+  html += `<div class="pp-actions">
+    <a href="#" onclick="wpRename(${i});return false"><i class="ti ti-edit"></i> rename</a>
+    <a href="#" onclick="logSpot(${p.lat},${p.lng},'${(p.name||'').replace(/'/g,"\\'")}');return false"><i class="ti ti-star"></i> log it</a>
+    <a href="#" onclick="wpRemove(${i});return false" style="color:var(--danger)"><i class="ti ti-trash"></i> remove</a>
+  </div>`;
+
+  if (wpPopup) wpPopup.remove();
+  wpPopup = new maplibregl.Popup({offset:20, maxWidth:'320px'}).setLngLat([p.lng,p.lat]).setHTML(html).addTo(map);
+
+  const when = eta && (eta.getTime()-Date.now()) < 16*864e5 ? eta : new Date();
+  Promise.allSettled([
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat.toFixed(3)}&longitude=${p.lng.toFixed(3)}&hourly=wind_speed_10m,wind_gusts_10m&wind_speed_unit=kn&forecast_days=16&timeformat=unixtime`).then(r=>r.json()),
+    fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${p.lat.toFixed(3)}&longitude=${p.lng.toFixed(3)}&hourly=wave_height&forecast_days=8&timeformat=unixtime`).then(r=>r.json())
+  ]).then(([wr, mr])=>{
+    const el = document.getElementById('wpb-wx');
+    if (!el) return;
+    const pick = (res, field)=>{
+      if (res.status!=='fulfilled' || !res.value.hourly || !res.value.hourly.time) return null;
+      const h = res.value.hourly, ts = when.getTime()/1000;
+      let idx = Math.round((ts - h.time[0])/3600);
+      if (idx < 0 || idx >= h.time.length) return null;
+      return h[field] ? h[field][idx] : null;
+    };
+    const wind = pick(wr,'wind_speed_10m'), gust = pick(wr,'wind_gusts_10m'), wave = pick(mr,'wave_height');
+    const label = eta && when===eta ? 'at ETA' : 'now';
+    el.className = '';
+    el.innerHTML = wind!=null
+      ? `${Math.round(wind)} kn (g${Math.round(gust||0)})${wave!=null ? ` · ${wave.toFixed(1)} m seas` : ''} <span style="color:var(--faint)">${label}</span>`
+      : '<span class="pp-dim">no forecast for that time</span>';
+  });
+}
+window.wpRename = i=>{ const n = prompt('Name this waypoint:', wps[i].name||''); if (n!==null){ wps[i].name = n; if (wpPopup) wpPopup.remove(); render(); } };
+window.wpRemove = i=>{ if (wpPopup) wpPopup.remove(); wps.splice(i,1); render(); };
 
 window.addAsWaypoint = (lat,lng,name)=>{
   wps.push({lat,lng,name});

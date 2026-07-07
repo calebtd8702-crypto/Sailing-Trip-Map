@@ -84,7 +84,7 @@ async function scanArea(){
   const status = document.getElementById('scanstatus');
   if (z < 10){ status.innerHTML=''; return; }
   const b = map.getBounds();
-  const key = [z>=13, b.getSouth().toFixed(2), b.getWest().toFixed(2), b.getNorth().toFixed(2), b.getEast().toFixed(2)].join(',');
+  const key = [z>=12, b.getSouth().toFixed(2), b.getWest().toFixed(2), b.getNorth().toFixed(2), b.getEast().toFixed(2)].join(',');
   if (key === lastFetchKey) return;
   if (scanning){ clearTimeout(scanTimer); scanTimer = setTimeout(scanArea, 2500); return; }
   scanning = true;
@@ -97,13 +97,13 @@ async function scanArea(){
     nwr["sport"~"scuba_diving|surfing"](${bbox});
     nwr["natural"="reef"]["name"](${bbox});
     nwr["waterway"="fuel"](${bbox});`;
-  if (z >= 13) q += `
+  if (z >= 12) q += `
     node["amenity"~"restaurant|cafe|bar|pub"](${bbox});
     nwr["amenity"="dive_centre"](${bbox});
     nwr["shop"~"scuba_diving|fishing"](${bbox});
     nwr["tourism"~"hotel|guest_house|attraction|museum|viewpoint"](${bbox});
     nwr["natural"="beach"]["name"](${bbox});`;
-  q += `);out center 500;`;
+  q += `);out center 600;`;
   try{
     const js = await overpassFetch(q);
     pois = [];
@@ -118,7 +118,7 @@ async function scanArea(){
       if (!name) return;
       const dk = cat+'|'+name+'|'+lat.toFixed(3);
       if (seen.has(dk)) return; seen.add(dk);
-      pois.push({cat, name, lat, lng, tags:t});
+      pois.push({cat, name, lat, lng, tags:t, uid:'poi'+(el.type||'n')+el.id});
     });
     lastFetchKey = key;
     drawPois();
@@ -131,11 +131,66 @@ async function scanArea(){
   scanning = false;
 }
 
+function poiPopupHTML(p, c, k){
+  const t = p.tags;
+  const g = key => t[key] || t['contact:'+key];
+  const row = (icon, html) => `<div class="pp-row"><i class="ti ${icon}"></i><span>${html}</span></div>`;
+  let rows = '';
+  if (g('phone')) rows += row('ti-phone', `<a href="tel:${g('phone').replace(/[^+\d]/g,'')}">${g('phone')}</a>`);
+  if (g('email')) rows += row('ti-mail', `<a href="mailto:${g('email')}">${g('email')}</a>`);
+  if (g('website')){
+    const url = g('website');
+    rows += row('ti-world', `<a href="${url}" target="_blank">${url.replace(/^https?:\/\/(www\.)?/,'').replace(/\/.*$/,'')}</a>`);
+  }
+  const vhf = t['seamark:radio_station:channel'] || t.vhf || t['communication:vhf'];
+  if (vhf) rows += row('ti-radio', 'VHF ' + vhf);
+  if (t.opening_hours) rows += row('ti-clock', t.opening_hours.length>42 ? t.opening_hours.slice(0,42)+'…' : t.opening_hours);
+  const fuels = ['fuel:diesel','fuel:petrol','fuel:gasoline','fuel:octane_95'].filter(f=>t[f]==='yes').map(f=>f==='fuel:diesel'?'diesel':'petrol');
+  if (fuels.length) rows += row('ti-gas-station', 'Fuel: ' + [...new Set(fuels)].join(' + '));
+  if (t.berths || t.capacity) rows += row('ti-anchor', (t.berths||t.capacity) + ' berths');
+  if (t.internet_access && t.internet_access!=='no') rows += row('ti-wifi', 'Wifi' + (t.internet_access==='yes'?'':' ('+t.internet_access+')'));
+  if (t.operator) rows += row('ti-building', t.operator);
+  if (t.description) rows += row('ti-info-circle', t.description.length>100 ? t.description.slice(0,100)+'…' : t.description);
+  const addrKnown = [t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ');
+  rows += row('ti-map-pin', `<span id="pp-addr-${p.uid}">${addrKnown || '<span class="pp-dim">locating…</span>'}</span>`);
+
+  const safeName = p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const searchQ = encodeURIComponent(p.name + ' ' + (t['addr:city'] || '') + ' ' + (k==='marina'?'marina':k==='eat'?'restaurant':k==='stay'?'hotel':''));
+  return `<b>${p.name}</b><br><span style="color:var(--muted);font-size:11px">${c.label}${poiSub(t,k)?' · '+poiSub(t,k):''}</span>
+    <div class="pp-row"><i class="ti ti-current-location"></i><span style="font-variant-numeric:tabular-nums">${fmtCoord(p.lat,p.lng)}</span></div>
+    ${rows}
+    <div class="pp-actions">
+      <a href="#" onclick="addAsWaypoint(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-route"></i> add to course</a>
+      <a href="#" onclick="logSpot(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-star"></i> log it</a>
+      <a id="pp-web-${p.uid}" href="https://www.google.com/search?q=${searchQ}" target="_blank"><i class="ti ti-search"></i> find online</a>
+    </div>`;
+}
+
+async function resolvePoiExtras(p){
+  if (p._resolved) return;
+  p._resolved = true;
+  try{
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.lat.toFixed(5)}&lon=${p.lng.toFixed(5)}&zoom=18&accept-language=en`);
+    const js = await r.json();
+    const a = js.address || {};
+    const line = [[a.house_number, a.road].filter(Boolean).join(' '), a.village||a.town||a.city||a.island, a.state, a.country]
+      .filter(Boolean).slice(0,3).join(', ');
+    const el = document.getElementById('pp-addr-'+p.uid);
+    if (el && line) el.textContent = line;
+    const place = a.village||a.town||a.city||a.island||a.county||'';
+    const web = document.getElementById('pp-web-'+p.uid);
+    if (web && place){
+      const kind = p.cat==='marina'?'marina':p.cat==='eat'?'restaurant':p.cat==='stay'?'hotel':p.cat==='dive'?'diving':'';
+      web.href = 'https://www.google.com/search?q=' + encodeURIComponent(`${p.name} ${place} ${kind}`.trim());
+    }
+  }catch(err){ p._resolved = false; }
+}
+
 function drawPois(){
   poiMarkers.forEach(m=>m.remove()); poiMarkers=[];
   const list = document.getElementById('poilist');
   const groups = {};
-  const capPerCat = 60;
+  const capPerCat = 90;
   Object.keys(CATS).forEach(k=>groups[k]=[]);
   pois.forEach(p=>{ if (CATS[p.cat].on && groups[p.cat].length<capPerCat) groups[p.cat].push(p); });
 
@@ -146,18 +201,9 @@ function drawPois(){
     any = true;
     const c = CATS[k];
     items.forEach(p=>{
-      const t = p.tags;
-      let pop = `<b>${p.name}</b><br><span style="color:var(--muted);font-size:11px">${c.label}${poiSub(t,k)?' · '+poiSub(t,k):''}</span><br>
-        <span style="font-size:11px;font-variant-numeric:tabular-nums">${fmtCoord(p.lat,p.lng)}</span>`;
-      if (t.phone||t['contact:phone']) pop += `<br><i class="ti ti-phone"></i> ${t.phone||t['contact:phone']}`;
-      if (t.website||t['contact:website']) pop += `<br><a href="${t.website||t['contact:website']}" target="_blank"><i class="ti ti-external-link"></i> website</a>`;
-      if (t['addr:street']) pop += `<br><span style="font-size:11px;color:var(--muted)">${[t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ')}</span>`;
-      const safeName = p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-      pop += `<br><a href="#" onclick="addAsWaypoint(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-route"></i> add to course</a>
-        &nbsp;·&nbsp; <a href="#" onclick="logSpot(${p.lat},${p.lng},'${safeName}');return false"><i class="ti ti-star"></i> log it</a>`;
       const mk = domMarker(
         `<div class="poimark${k==='wreck'?' wreck':''}" style="width:25px;height:25px;--pc:${c.color}"><i class="ti ${c.icon}"></i></div>`,
-        p.lat, p.lng, {popup:pop});
+        p.lat, p.lng, {popup: poiPopupHTML(p, c, k), onPopupOpen: ()=> resolvePoiExtras(p)});
       poiMarkers.push(mk);
       p._mk = mk;
     });

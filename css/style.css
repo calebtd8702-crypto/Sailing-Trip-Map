@@ -255,6 +255,12 @@ html,body{height:100%;font-family:var(--sans);background:#0a1826;color:var(--ink
 }
 .maplibregl-popup-tip{display:none}
 .maplibregl-popup-content b{font-family:var(--serif);font-weight:400;font-size:15px;color:var(--brass)}
+.pp-row{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin:5px 0;line-height:1.45}
+.pp-row .ti{color:var(--brass);font-size:13px;margin-top:1px;flex:none}
+.pp-row a{color:var(--teal)}
+.pp-dim{color:var(--faint)}
+.pp-actions{display:flex;gap:12px;margin-top:9px;padding-top:9px;border-top:1px solid var(--edge);font-size:12.5px;flex-wrap:wrap}
+.pp-actions a{white-space:nowrap}
 .maplibregl-popup-content a{color:var(--teal);text-decoration:none}
 .maplibregl-popup-content a:hover{text-shadow:0 0 8px rgba(84,224,192,.6)}
 .maplibregl-popup-close-button{color:var(--faint);font-size:18px;right:6px;top:4px;background:none}
