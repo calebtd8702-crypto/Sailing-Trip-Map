@@ -434,6 +434,39 @@ window.addAsWaypoint = (lat,lng,name)=>{
   document.querySelectorAll('.maplibregl-popup').forEach(p=>p.remove());
 };
 
+/* ================= map context menu ================= */
+const ctxMenu = document.createElement('div');
+ctxMenu.id = 'ctxmenu';
+ctxMenu.className = 'glass';
+ctxMenu.hidden = true;
+document.body.appendChild(ctxMenu);
+let ctxLL = null;
+
+map.on('contextmenu', e=>{
+  e.preventDefault();
+  ctxLL = e.lngLat;
+  ctxMenu.innerHTML = `
+    <button data-act="wp"><i class="ti ti-route"></i> Drop waypoint here</button>
+    <button data-act="log"><i class="ti ti-star"></i> Log this spot</button>
+    <button data-act="copy"><i class="ti ti-copy"></i> Copy coordinates</button>`;
+  ctxMenu.querySelectorAll('button').forEach(b=> b.onclick = ()=>{
+    ctxMenu.hidden = true;
+    if (!ctxLL) return;
+    if (b.dataset.act === 'wp'){ wps.push({lat:ctxLL.lat, lng:ctxLL.lng}); render(); }
+    if (b.dataset.act === 'log') logSpot(ctxLL.lat, ctxLL.lng, '');
+    if (b.dataset.act === 'copy'){
+      const txt = `${fmtCoord(ctxLL.lat, ctxLL.lng)}  (${ctxLL.lat.toFixed(5)}, ${ctxLL.lng.toFixed(5)})`;
+      navigator.clipboard && navigator.clipboard.writeText(txt);
+    }
+  });
+  const x = e.originalEvent.clientX, y = e.originalEvent.clientY;
+  ctxMenu.hidden = false;
+  ctxMenu.style.left = Math.min(x, window.innerWidth - 210) + 'px';
+  ctxMenu.style.top = Math.min(y, window.innerHeight - 140) + 'px';
+});
+['click','movestart'].forEach(ev=> map.on(ev, ()=>{ ctxMenu.hidden = true; }));
+document.addEventListener('click', e=>{ if (!ctxMenu.contains(e.target)) ctxMenu.hidden = true; });
+
 /* ================= cursor readout + hover locator ================= */
 let hoverTimer = null, lastPlaceKey = '';
 const placeCache = {};

@@ -36,8 +36,8 @@ function renderCountryCard(hit, d){
   const card = document.getElementById('countrycard');
   if (!d){
     card.innerHTML = `<button class="cc-close" onclick="dismissCountry('${hit.cc}')"><i class="ti ti-x"></i></button>
-      <div class="cc-head"><span class="cc-flag">${flagEmoji(hit.cc)}</span><div><h2>${hit.name}</h2><p>No intel card yet</p></div></div>
-      <div class="cc-body"><p class="cc-note">Ask Claude to research ${hit.name} and add <code>data/countries/${hit.cc}.json</code> — ports of entry, fees, stay limits, fishing rules.</p></div>`;
+      <div class="cc-head"><span class="cc-flag">${flagEmoji(hit.cc)}</span><div><h2>${hit.name}</h2><p>No cruising guide yet</p></div></div>
+      <div class="cc-body"><p class="cc-note">Guides cover ports of entry, clearing-in fees, stay limits and fishing rules — they're added leg by leg. The Ashore scanner and search work here all the same.</p></div>`;
     card.hidden = false;
     return;
   }

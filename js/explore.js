@@ -226,3 +226,11 @@ map.on('moveend', ()=>{
   clearTimeout(scanTimer);
   scanTimer = setTimeout(scanArea, 900);
 });
+
+document.getElementById('rescan').onclick = ()=>{
+  const z = map.getZoom();
+  if (z < 10){ document.getElementById('scanstatus').textContent = 'zoom in closer to scan'; return; }
+  lastFetchKey = '';
+  scanning = false;
+  scanArea();
+};

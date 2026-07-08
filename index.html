@@ -6,7 +6,7 @@
 <title>Helm — passage planner</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 <div id="map"></div>
@@ -60,7 +60,7 @@
   </div>
 
   <div class="panel glass" id="explorepanel">
-    <div class="phead"><i class="ti ti-map-pin"></i> Ashore <span id="scanstatus"></span></div>
+    <div class="phead"><i class="ti ti-map-pin"></i> Ashore <span id="scanstatus"></span><button id="rescan" title="Rescan this view"><i class="ti ti-refresh"></i></button></div>
     <div id="cats"></div>
     <div id="poilist"><div id="zoomhint"><i class="ti ti-zoom-in" style="color:var(--brass)"></i> Zoom in on a coastline and everything nearby appears here — marinas &amp; anchorages first, then restaurants, hotels and sights as you get closer.</div></div>
   </div>
@@ -72,6 +72,7 @@
   <div class="spacer"></div>
   <div class="chip gbtn" id="modechip" title="Toggle plotting (P)"><i class="ti ti-pencil" style="color:var(--brass)"></i> <span id="modelabel">Plotting on</span></div>
   <button class="gbtn iconbtn" id="layersbtn" title="Map layers"><i class="ti ti-stack-2"></i></button>
+  <button class="gbtn iconbtn" id="helpbtn" title="Take the tour"><i class="ti ti-help"></i></button>
   <button class="gbtn iconbtn" id="sidetoggle" title="Toggle panel"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
 </div>
 
@@ -140,13 +141,14 @@
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script src="js/geo.js"></script>
-<script src="js/app.js"></script>
-<script src="js/voyage.js"></script>
-<script src="js/explore.js"></script>
-<script src="js/zones.js"></script>
-<script src="js/weather.js"></script>
-<script src="js/country.js"></script>
-<script src="js/budget.js"></script>
+<script src="js/geo.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
+<script src="js/voyage.js?v=3"></script>
+<script src="js/explore.js?v=3"></script>
+<script src="js/zones.js?v=3"></script>
+<script src="js/weather.js?v=3"></script>
+<script src="js/country.js?v=3"></script>
+<script src="js/budget.js?v=3"></script>
+<script src="js/tour.js?v=3"></script>
 </body>
 </html>

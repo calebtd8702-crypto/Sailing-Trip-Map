@@ -331,6 +331,38 @@ html,body{height:100%;font-family:var(--sans);background:#0a1826;color:var(--ink
 .cc-note{font-size:12.5px;color:var(--muted);line-height:1.6}
 .cc-note code{background:var(--glass-lite);padding:1px 5px;border-radius:5px;font-size:11px}
 
+/* ============ guided tour ============ */
+#tour-hl{
+  position:fixed;z-index:2500;pointer-events:none;border-radius:16px;
+  border:2px solid var(--brass);
+  box-shadow:0 0 0 9999px rgba(5,12,20,.55), 0 0 22px rgba(236,192,106,.55);
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+}
+#tour-card{position:fixed;z-index:2600;width:330px;padding:16px 18px;border-radius:18px}
+#tour-card .tc-head{font-family:var(--serif);font-size:17px;color:var(--brass);display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+#tour-card .tc-skip{font-family:var(--sans);font-size:11px;color:var(--faint);text-decoration:none}
+#tour-card .tc-skip:hover{color:var(--coral)}
+#tour-card p{font-size:13px;line-height:1.6;color:var(--ink);margin:0 0 12px}
+#tour-card .tc-foot{display:flex;align-items:center;justify-content:space-between}
+#tour-card .tc-n{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+#tour-card .tc-btns{display:flex;gap:8px}
+#tour-card button{border-radius:999px;padding:7px 16px;font-size:12.5px;cursor:pointer;transition:all .15s}
+#tour-card .tc-back{background:none;border:1px solid var(--edge);color:var(--muted)}
+#tour-card .tc-back:hover{color:var(--ink);border-color:var(--edge-hi)}
+#tour-card .tc-next{background:linear-gradient(160deg,#f5d48c,var(--brass));border:1px solid rgba(255,255,255,.5);color:#0a1826;font-weight:600;box-shadow:0 0 14px rgba(236,192,106,.35)}
+#tour-card .tc-next:hover{box-shadow:0 0 20px rgba(236,192,106,.55)}
+
+/* ============ context menu ============ */
+#ctxmenu{position:fixed;z-index:2200;padding:6px;border-radius:14px;display:flex;flex-direction:column;min-width:190px}
+#ctxmenu[hidden]{display:none}
+#ctxmenu button{background:none;border:none;color:var(--ink);font-size:12.5px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:9px;border-radius:9px;text-align:left;transition:background .12s}
+#ctxmenu button:hover{background:rgba(236,192,106,.1)}
+#ctxmenu button .ti{color:var(--brass);font-size:14px}
+
+/* ============ rescan button ============ */
+#rescan{background:none;border:none;color:var(--faint);font-size:14px;cursor:pointer;padding:2px 0 2px 8px;transition:color .15s}
+#rescan:hover{color:var(--brass)}
+
 /* ============ footer readouts ============ */
 #cursorpos{position:absolute;bottom:14px;right:14px;z-index:1000;font-size:11.5px;font-variant-numeric:tabular-nums}
 #cursorplace{color:var(--brass);display:none;padding-right:10px;margin-right:2px;border-right:1px solid var(--edge);font-variant-numeric:normal}
