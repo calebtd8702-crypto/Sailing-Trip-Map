@@ -77,7 +77,42 @@ async function computeBudget(){
     reserve: RATES.reserveDay*(seaDays+nightsSum)
   };
   const total = Object.values(cats).reduce((a,b)=>a+b, 0);
-  return {cats, stops, total, dist, seaDays, nightsSum, countries:[...countries.values()], crew, ft, budget:v.budget||0};
+
+  const reg = s => s.idx !== 1 ? ` × ${s.idx} regional price level` : '';
+  const detail = {
+    stays: stops.map(s=>({
+      label: `${s.name} — ${s.n} night${s.n>1?'s':''} ${s.stay==='marina'?'marina slip':s.stay==='shore'?'ashore':'at anchor'}`,
+      sub: s.stay==='marina' ? `${ft} ft × $${RATES.marinaPerFtNight}/ft/night × ${s.n} nights${reg(s)}`
+         : s.stay==='shore'  ? `${Math.ceil(crew/2)} room × $${RATES.hotelNight}/night × ${s.n} nights${reg(s)}`
+         : `$${RATES.anchorNight}/night × ${s.n} — occasional mooring & park fees`,
+      amt: s.stayCost
+    })),
+    food: [
+      {label:'Underway — cooking aboard', sub:`${crew} crew × ${seaDays.toFixed(1)} days at sea × $${RATES.foodAboardDay}/person/day groceries`, amt: RATES.foodAboardDay*crew*seaDays},
+      ...stops.map(s=>({
+        label:`${s.name}${s.stay==='shore'?' — eating out':' — groceries + meals out'}`,
+        sub:`${crew} crew × ${s.n} day${s.n>1?'s':''} × $${s.stay==='shore'?RATES.foodShoreDay:RATES.foodStopDay}/person/day${reg(s)}`,
+        amt: s.foodCost
+      }))
+    ],
+    fun: stops.map(s=>({
+      label: s.name,
+      sub:`${crew} crew × ${s.n} day${s.n>1?'s':''} × $${RATES.funDay}/person/day — tours, gear rental, a bar tab${reg(s)}`,
+      amt: s.funCost
+    })),
+    fuel: [
+      {label:'Diesel, oil & running costs', sub:`${Math.round(dist)} nm × $${RATES.fuelPerNm}/nm`, amt: dist*RATES.fuelPerNm},
+      {label:'What that assumes', sub:`~35% motoring ≈ ${Math.round(dist*.35)} nm under power ≈ ${Math.round(dist*.35/5)} engine hours — sail more, spend less`, amt: null}
+    ],
+    fees: [...countries.values()].map(name=>({
+      label: name, sub:'clearance, cruising permit & port fee allowance per country visited', amt: RATES.clearancePerCountry
+    })),
+    reserve: [
+      {label:'Cruising kitty', sub:`${(seaDays+nightsSum).toFixed(1)} voyage days × $${RATES.reserveDay}/day — spares, breakage, laundry, propane, the stuff that always comes up`, amt: RATES.reserveDay*(seaDays+nightsSum)}
+    ]
+  };
+
+  return {cats, detail, stops, total, dist, seaDays, nightsSum, countries:[...countries.values()], crew, ft, budget:v.budget||0};
 }
 
 /* ---------- UI ---------- */
@@ -145,9 +180,11 @@ async function refreshBudget(){
     CAT_META.forEach(([k,icon,label])=>{
       if (b.cats[k] < 1) return;
       const w = b.total ? (b.cats[k]/b.total*100) : 0;
-      html += `<div class="b-cat"><i class="ti ${icon}"></i><span class="b-lbl">${label}</span>
+      const subs = (b.detail && b.detail[k]) || [];
+      html += `<div class="b-cat" data-cat="${k}" title="Show the math"><i class="ti ${icon}"></i><span class="b-lbl">${label}</span>
         <span class="b-track"><span style="width:${w.toFixed(0)}%"></span></span>
-        <span class="b-amt">${fmt$(b.cats[k])}</span></div>`;
+        <span class="b-amt">${fmt$(b.cats[k])}</span><i class="ti ti-chevron-down b-chev"></i></div>
+        <div class="b-sub" hidden>${subs.map(d=>`<div class="b-subrow"><span class="b-sl">${d.label}<span class="b-ss">${d.sub}</span></span><span class="b-samt">${d.amt!=null?fmt$(d.amt):''}</span></div>`).join('')}</div>`;
     });
     html += '</div>';
     if (b.stops.length){
@@ -161,8 +198,15 @@ async function refreshBudget(){
     } else {
       html += '<div class="b-sec" style="text-transform:none;letter-spacing:0">No overnight stops yet — set nights on your waypoints in the course list and the stay costs appear here.</div>';
     }
-    html += '<p class="cc-foot">Rough planning estimates: regional price levels, marina ≈ $2.20/ft/night, ~35% motoring. Tune nothing — or everything — against reality as you go.</p>';
+    html += '<p class="cc-foot">Rough planning estimates — click any line to see the math behind it. Tune against reality as you go.</p>';
     body.innerHTML = html;
+    body.querySelectorAll('.b-cat').forEach(el=>{
+      el.onclick = ()=>{
+        const sub = el.nextElementSibling;
+        sub.hidden = !sub.hidden;
+        el.querySelector('.b-chev').style.transform = sub.hidden ? '' : 'rotate(180deg)';
+      };
+    });
   }catch(err){
     body.innerHTML = '<div class="b-loading">Could not estimate — check the connection and try again.</div>';
   }
